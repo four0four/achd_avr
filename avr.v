@@ -4,18 +4,18 @@ module avr_cpu (
   // currently held instruction
   // feeds combinational shit
   input wire [15:0] instr,
-  
+
   // non-register memories
   // pad with 0s to fit
   output wire [15:0] p_addr,
   output wire [15:0] d_addr,
 
 
-	// debugging
-	output wire [7:0] S_reg,
-	output [7:0] Rr_do, 
-	output [7:0] Rd_do,
-	output [7:0] Rd_di
+  // debugging
+  output wire [7:0] S_reg,
+  output [7:0] Rr_do, 
+  output [7:0] Rd_do,
+  output [7:0] Rd_di
 
 ); 
 
@@ -50,7 +50,7 @@ module avr_cpu (
   reg [7:0] Rr_do;
   reg [7:0] Rd_do;
 
-	// dest reg data-in register (to-write)
+  // dest reg data-in register (to-write)
   reg [7:0] Rd_di;
 
   // register file
@@ -71,28 +71,28 @@ module avr_cpu (
   // zero flag          Z
   // carry flag         C
   reg I, T, H, S, V, N, Z, C;
-	assign S_reg = {I, T, H, S, V, N, Z, C};
+  assign S_reg = {I, T, H, S, V, N, Z, C};
 
-	genvar i;
-	generate
-	for(i=0; i<26; i = i + 1) begin
-		always @(posedge CLK) begin // reset cond
-			if(RST) begin          
-				reg_file[i] <= 8'b0;
-			end
-		end
-	end
-	endgenerate
+  genvar i;
+  generate
+  for(i=0; i<26; i = i + 1) begin
+    always @(posedge CLK) begin // reset cond
+      if(RST) begin          
+        reg_file[i] <= 8'b0;
+      end
+    end
+  end
+  endgenerate
 
 
-	always @(posedge CLK) begin // reset cond
-		if(RST) begin          
-			reg_X <= 16'b0;
-			reg_Y <= 16'b0;
-			reg_Z <= 16'b0;
+  always @(posedge CLK) begin // reset cond
+    if(RST) begin          
+      reg_X <= 16'b0;
+      reg_Y <= 16'b0;
+      reg_Z <= 16'b0;
      {I, T, H, S, V, N, Z, C} <= 8'b0;
-		end
-	end
+    end
+  end
 
   always @(*) begin
     // handle partial reg_{X,Y,Z} loading
@@ -122,41 +122,41 @@ module avr_cpu (
     end 
   end
 
-	always @ (posedge CLK) begin // negedge? lower freq, but we may actually work
+  always @ (posedge CLK) begin // negedge? lower freq, but we may actually work
     // handle partial reg_{X,Y,Z} writing
     if (Rd_addr < 5'd26) reg_file[Rd_addr] = Rd_di;
-		else begin
-			case(Rd_addr)
-				5'd26: reg_X[7:0]  = Rd_di;
-				5'd27: reg_X[15:8] = Rd_di;
-				5'd28: reg_Y[7:0]	 = Rd_di;   
-				5'd29: reg_Y[15:8] = Rd_di;   
-				5'd30: reg_Z[7:0]  = Rd_di;   
-				5'd31: reg_Z[15:8] = Rd_di;   
-			endcase
-		end
-	end
+    else begin
+      case(Rd_addr)
+        5'd26: reg_X[7:0]  = Rd_di;
+        5'd27: reg_X[15:8] = Rd_di;
+        5'd28: reg_Y[7:0]  = Rd_di;   
+        5'd29: reg_Y[15:8] = Rd_di;   
+        5'd30: reg_Z[7:0]  = Rd_di;   
+        5'd31: reg_Z[15:8] = Rd_di;   
+      endcase
+    end
+  end
 
-	// instruction decoder && ALU
-	always @ (*) begin
-		casex(instr)
-			16'b000x11xxxxxxxxxx: begin // ADD, ADC	- bit 12 indicates carry
+  // instruction decoder && ALU
+  always @ (*) begin
+    casex(instr)
+      16'b000x11xxxxxxxxxx: begin // ADD, ADC - bit 12 indicates carry
 
-			end
-			16'b000110xxxxxxxxxx: begin // SUB
+      end
+      16'b000110xxxxxxxxxx: begin // SUB
 
-			end
-			16'b0101xxxxxxxxxxxx: begin // SUBI
-				Rd_di = Rd_do - K_8bit;
-				H = (~Rd_do[3] & K_8bit[3]) | (Rd_di[3] & K_8bit[3]) | (Rd_di[3] & ~Rd_do[3]);
-				V = (Rd_do[7] & ~K_8bit[7] & ~Rd_di[7]) | (~Rd_do[7] & K_8bit[7] & Rd_di[7]);
-				N = Rd_di[7];
-				S = V ^ N;
-				Z = (Rd_di == 8'b0);
-				C = (~Rd_di[7] & K_8bit[7]) | (K_8bit[7] & Rd_di[7]) | (Rd_di[7] & ~Rd_do[7]);
-			end
-		endcase
-	end
+      end
+      16'b0101xxxxxxxxxxxx: begin // SUBI
+        Rd_di = Rd_do - K_8bit;
+        H = (~Rd_do[3] & K_8bit[3]) | (Rd_di[3] & K_8bit[3]) | (Rd_di[3] & ~Rd_do[3]);
+        V = (Rd_do[7] & ~K_8bit[7] & ~Rd_di[7]) | (~Rd_do[7] & K_8bit[7] & Rd_di[7]);
+        N = Rd_di[7];
+        S = V ^ N;
+        Z = (Rd_di == 8'b0);
+        C = (~Rd_di[7] & K_8bit[7]) | (K_8bit[7] & Rd_di[7]) | (Rd_di[7] & ~Rd_do[7]);
+      end
+    endcase
+  end
 
 
 
