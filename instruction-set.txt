@@ -1,0 +1,144 @@
+immediate instructions can only use R16 - R31 (Rd is {1, dddd} instead of ddddd)
+
+thoughts: the reference cpu (at90s1200) uses a 3-entry hardware stack, and doesn't support push/pop
+	we could easily add that, and I'd definitely rather implement a SRAM stack with SP
+  tiny2313 is a good core that has push/pop without bigger things like CALL (only rcall) 
+  *does* have word length instructions
+  downsides: LD variants become important (indirect BS)
+
+bit 14 is imm flag?
+
+
+add 
+	Rd <- Rd + Rr
+	0000 11rd dddd rrrr
+adc
+	Rd <- Rd + Rr + C
+	0001 11rd dddd rrrr
+sub
+	Rd <- Rd - Rr
+	0001 10rd dddd rrrr
+subi
+	Rd <- Rd - K
+	0101 kkkk dddd kkkk
+sbc
+	Rd <- Rd - Rr - C
+	0000 10rd dddd rrrr
+sbci
+	Rd <- Rd - K - C
+	0100 kkkk dddd kkkk
+and
+	Rd <- Rd & Rr
+	0010 00rd dddd rrrr
+andi
+	Rd <- Rd & k
+	0111 kkkk dddd kkkk
+or
+	0010 10rd dddd rrrr
+ori
+	0110 kkkk dddd kkkk
+eor
+	0010 01rd dddd rrrr
+com
+	Rd <- 0xFF - Rd 
+	1001 010d dddd 0000
+neg
+	Rd <- 0x00 - Rd
+	1001 010d dddd 0001
+sbr
+cbr
+inc
+dec
+tst
+clr
+ser
+
+rjmp
+	k signed, so max +/-2K words 
+	PC <- PC + k + 1
+	1100 kkkk kkkk kkkk
+rcall
+	PC <- PC + k + 1 
+	STACK <- PC + 1
+	SP <- SP - 2
+	1101 kkkk kkkk kkkk
+ret
+	PC <- STACK
+	SP <- SP + 2
+	1001 0101 0000 1000
+reti
+cpse
+cp
+cpc
+cpi
+sbrc
+sbrs
+sbic
+sbis
+brbs
+brbc
+breq
+brne
+brcs
+brcc
+brsh
+brlo
+brmi
+brpl
+brge
+brlt
+brhs
+brhc
+brts
+brtc
+brvs
+brvc
+brie
+brid
+
+ld
+st
+mov
+	Rd <- Rr
+	0010 11rd dddd rrrr
+ldi
+	Rd <- k
+	1110 kkkk dddd kkkk
+in
+	Rd <- I/O(A)
+	1011 0aad dddd aaaa
+out
+	IO(A) <- Rr
+	1011 1aar rrrr aaaa
+
+sbi
+cbi
+lsl
+lsr
+rol
+ror
+asr
+swap
+  Rd[7:4] = Rd[3:0], Rd[3:0] = Rd[7:4]
+  1001 010d dddd 0010
+bset
+bclr
+bst
+bld
+sec
+clc
+sen
+cln
+sez
+clz
+sei
+cli
+ses
+cls
+sev
+clv
+set
+clt
+seh
+clh
+nop

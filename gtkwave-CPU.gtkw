@@ -1,0 +1,46 @@
+[*]
+[*] GTKWave Analyzer v3.3.72 (w)1999-2016 BSI
+[*] Sat May  7 03:06:01 2016
+[*]
+[dumpfile] "/home/galen/ownCloud/Classes/spring16/ecse4780/final project/achd_avr/dump.vcd"
+[dumpfile_mtime] "Sat May  7 03:01:38 2016"
+[dumpfile_size] 2556
+[savefile] "/home/galen/ownCloud/Classes/spring16/ecse4780/final project/achd_avr/gtkwave-CPU.gtkw"
+[timestart] 0
+[size] 1920 1023
+[pos] -1 -1
+*-4.171581 60 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] cpu_tb.
+[treeopen] cpu_tb.c.
+[sst_width] 191
+[signals_width] 198
+[sst_expanded] 1
+[sst_vpaned_height] 303
+@28
+cpu_tb.c.RST
+cpu_tb.c.CLK
+@22
+cpu_tb.c.instr[15:0]
+cpu_tb.c.Rd_addr[4:0]
+cpu_tb.c.Rr_addr[4:0]
+cpu_tb.c.Rr_do[7:0]
+cpu_tb.c.Rd_do[7:0]
+cpu_tb.c.Rd_di[7:0]
+cpu_tb.c.reg_X[15:0]
+cpu_tb.c.reg_Y[15:0]
+cpu_tb.c.reg_Z[15:0]
+@800022
+cpu_tb.c.S_reg[7:0]
+@28
++{Interrupt} (0)cpu_tb.c.S_reg[7:0]
++{Transfer} (1)cpu_tb.c.S_reg[7:0]
++{Half Carry} (2)cpu_tb.c.S_reg[7:0]
++{Signed Test} (3)cpu_tb.c.S_reg[7:0]
++{(V) 2's comp over} (4)cpu_tb.c.S_reg[7:0]
++{Negative Flag} (5)cpu_tb.c.S_reg[7:0]
++{Zero Flag} (6)cpu_tb.c.S_reg[7:0]
++{Carry} (7)cpu_tb.c.S_reg[7:0]
+@1001200
+-group_end
+[pattern_trace] 1
+[pattern_trace] 0
