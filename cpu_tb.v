@@ -12,12 +12,14 @@ module cpu_tb;
 
   initial begin
     //$readmemh("fetchtest.hex", pmem);
+		$dumpfile("cpu_test.vcd");
     $dumpvars(0, c);
     #5 rst = 1;
     #5 rst = 0;
-    #10 inst = 16'b0101000010100001;
+    #0 inst = 16'b0101000010100001;
     #10 inst = 16'b0101000010100010;
     #10 inst = 16'b0101000010100000;
+    #10 inst = 16'b0;
     #20 $finish;
   end
 

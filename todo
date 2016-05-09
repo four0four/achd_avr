@@ -1,0 +1,4 @@
+* Real directory structure
+* Better build/test system
+* Hardware/Quartus impl
+* Finish selecting instructions (instruction-set.txt)
