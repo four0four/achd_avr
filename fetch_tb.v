@@ -13,7 +13,7 @@ module fetch_tb;
 
 
   initial begin
-    $readmemh("fetchtest.hex", pmem);
+    $readmemh("fetchtest.hex", pmem, 0, 511);
 		$dumpfile("fetch_test.vcd");
     $dumpvars(0, f);
     #5 rst = 1;
