@@ -141,7 +141,7 @@ module avr_cpu (
   always @ (*) begin
     casex(instr)
       16'b000x11xxxxxxxxxx: begin // ADD, ADC - bit 12 indicates carry
-				Rd_di = Rd_do + Rr_do + (instr[12] == 1'b1) ? C : 1'b0;
+				Rd_di = Rd_do + Rr_do + ((instr[12] == 1'b1) ? C : 1'b0);
         H = (Rd_do[3] & Rr_do[3]) | (Rr_do[3] & ~Rd_do[3]) | (~Rd_do[3] & Rd_do[3]);
 				V = (Rd_do[7] & Rr_do[7] & ~Rd_di[7]) | (~Rd_do[7] & Rr_do[7] & Rd_di[7]);
 				N = Rd_di[7];
