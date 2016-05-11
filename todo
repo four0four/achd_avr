@@ -2,3 +2,6 @@
 * Better build/test system
 * Hardware/Quartus impl
 * Finish selecting instructions (instruction-set.txt)
+
+* Implementation notes:
+* * Currently, status reg isn't latched - this means things like carries won't persist > 1 instruction. Register them!

@@ -10,9 +10,10 @@ module avr_cpu (
   output wire [15:0] p_addr,
   output wire [15:0] d_addr,
 
+  output reg [7:0] S_reg,
+
 
   // debugging
-  output wire [7:0] S_reg,
   output [7:0] Rr_do, 
   output [7:0] Rd_do,
   output [7:0] Rd_di
@@ -60,7 +61,6 @@ module avr_cpu (
   reg [15:0] reg_Z;
   reg [15:0] reg_SP; // we want this?
 
-  wire register_write; // write following to Rd
   // SREG - half of these probably won't be needed
   // interrupt enable   I
   // bit copy storage   T
@@ -71,7 +71,6 @@ module avr_cpu (
   // zero flag          Z
   // carry flag         C
   reg I, T, H, S, V, N, Z, C;
-  assign S_reg = {I, T, H, S, V, N, Z, C};
 
   genvar i;
   generate
@@ -85,13 +84,15 @@ module avr_cpu (
   endgenerate
 
 
-  always @(posedge CLK) begin // reset cond
-    if(RST) begin          
-      reg_X <= 16'b0;
+  always @(posedge CLK) begin 
+    if(RST) begin              // reset cond
+    	reg_X <= 16'b0;
       reg_Y <= 16'b0;
       reg_Z <= 16'b0;
-     {I, T, H, S, V, N, Z, C} <= 8'b0;
+    	{I, T, H, S, V, N, Z, C} <= 8'b0;
+			S_reg <= 8'b0;
     end
+		else S_reg <= {I, T, H, S, V, N, Z, C};
   end
 
   always @(*) begin
@@ -140,6 +141,14 @@ module avr_cpu (
   // instruction decoder && ALU
   always @ (*) begin
     casex(instr)
+			16'b0000000000000000: begin
+				H = S_reg[5];
+				S = S_reg[4];
+				V = S_reg[3];
+				N = S_reg[2];
+				Z = S_reg[1];
+				C = S_reg[0];   
+			end
       16'b000x11xxxxxxxxxx: begin // ADD, ADC - bit 12 indicates carry
 				Rd_di = Rd_do + Rr_do + ((instr[12] == 1'b1) ? C : 1'b0);
         H = (Rd_do[3] & Rr_do[3]) | (Rr_do[3] & ~Rd_do[3]) | (~Rd_do[3] & Rd_do[3]);
@@ -163,13 +172,13 @@ module avr_cpu (
       end
 			16'b1110xxxxxxxxxxxx: begin // LDI
 				Rd_di = K_8bit;
-				H = H;
-				V = V;
-				N = N;
-				S = S;
-				Z = Z;
-				C = C;
-			end
+ 				H = S_reg[5];
+				S = S_reg[4];
+				V = S_reg[3];
+				N = S_reg[2];
+				Z = S_reg[1];
+				C = S_reg[0];   
+ 	end
     endcase
   end
 
