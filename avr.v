@@ -54,6 +54,9 @@ module avr_cpu (
   // dest reg data-in register (to-write)
   reg [7:0] Rd_di;
 
+	// write pass/inhibit
+	reg reg_write;
+
   // register file
   reg [7:0] reg_file [0:25];
   reg [15:0] reg_X;
@@ -86,10 +89,10 @@ module avr_cpu (
 
   always @(posedge CLK) begin 
     if(RST) begin              // reset cond
-    	reg_X <= 16'b0;
+			reg_X <= 16'b0;
       reg_Y <= 16'b0;
       reg_Z <= 16'b0;
-    	{I, T, H, S, V, N, Z, C} <= 8'b0;
+			{I, T, H, S, V, N, Z, C} <= 8'b0;
 			S_reg <= 8'b0;
     end
 		else S_reg <= {I, T, H, S, V, N, Z, C};
@@ -124,30 +127,40 @@ module avr_cpu (
   end
 
   always @ (posedge CLK) begin // negedge? lower freq, but we may actually work
-    // handle partial reg_{X,Y,Z} writing
-    if (Rd_addr < 5'd26) reg_file[Rd_addr] = Rd_di;
-    else begin
-      case(Rd_addr)
-        5'd26: reg_X[7:0]  = Rd_di;
-        5'd27: reg_X[15:8] = Rd_di;
-        5'd28: reg_Y[7:0]  = Rd_di;   
-        5'd29: reg_Y[15:8] = Rd_di;   
-        5'd30: reg_Z[7:0]  = Rd_di;   
-        5'd31: reg_Z[15:8] = Rd_di;   
-      endcase
-    end
+		if (reg_write == 1'b1) begin
+			if (Rd_addr < 5'd26) reg_file[Rd_addr] = Rd_di;
+			// handle partial reg_{X,Y,Z} writing
+			else begin
+				case(Rd_addr)
+					5'd26: reg_X[7:0]  = Rd_di;
+					5'd27: reg_X[15:8] = Rd_di;
+					5'd28: reg_Y[7:0]  = Rd_di;
+					5'd29: reg_Y[15:8] = Rd_di;
+					5'd30: reg_Z[7:0]  = Rd_di;
+					5'd31: reg_Z[15:8] = Rd_di;
+				endcase
+			end
+		end
   end
 
-  // instruction decoder && ALU
+  // instruction decoder && ALU - can split this up into something like write/flags/PC src but w/e
   always @ (*) begin
+			H = S_reg[5];
+			S = S_reg[4];
+			V = S_reg[3];
+			N = S_reg[2];
+			Z = S_reg[1];
+			C = S_reg[0];
+      reg_write = 1'b1;
     casex(instr)
-			16'b0000000000000000: begin
+			16'b0000000000000000: begin // NOP
 				H = S_reg[5];
 				S = S_reg[4];
 				V = S_reg[3];
 				N = S_reg[2];
 				Z = S_reg[1];
-				C = S_reg[0];   
+				C = S_reg[0];
+				reg_write = 1'b0;
 			end
       16'b000x11xxxxxxxxxx: begin // ADD, ADC - bit 12 indicates carry
 				Rd_di = Rd_do + Rr_do + ((instr[12] == 1'b1) ? C : 1'b0);
@@ -159,7 +172,13 @@ module avr_cpu (
 				C = (Rd_do[7] & Rr_do[7]) | (Rr_do[7] & ~Rd_di[7]) | (~Rd_di[7] & Rd_do[7]);
       end
       16'b000110xxxxxxxxxx: begin // SUB
-
+				Rd_di = Rd_do - Rr_do;
+				H = (~Rd_do[3] & Rr_do[3]) | (Rr_do[3] & Rd_di[3]) | (Rd_di[3] & ~Rd_do[3]);
+				V = (Rd_do[7] & ~Rr_do[7] & ~Rd_di[7]) | (~Rd_do[7] & Rr_do[7] & Rd_di[7]);
+				N = Rd_di[7];
+				S = N ^ V;
+				Z = (Rd_di == 8'b0);
+				C = (~Rd_do[7] & Rr_do[7]) | (Rr_do[7] & Rd_di[7]) | (Rd_di[7] & ~Rd_do[7]);
       end
       16'b0101xxxxxxxxxxxx: begin // SUBI
         Rd_di = Rd_do - K_8bit;
@@ -172,18 +191,15 @@ module avr_cpu (
       end
 			16'b1110xxxxxxxxxxxx: begin // LDI
 				Rd_di = K_8bit;
- 				H = S_reg[5];
+				H = S_reg[5];
 				S = S_reg[4];
 				V = S_reg[3];
 				N = S_reg[2];
 				Z = S_reg[1];
 				C = S_reg[0];   
- 	end
+			end
     endcase
   end
-
-
-
 
 endmodule
 
