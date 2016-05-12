@@ -87,16 +87,16 @@ module avr_cpu (
   endgenerate
 
 
-  always @(posedge CLK) begin 
-    if(RST) begin              // reset cond
+	always @(posedge CLK) begin 
+		if(RST) begin              // reset cond
 			reg_X <= 16'b0;
-      reg_Y <= 16'b0;
-      reg_Z <= 16'b0;
+			reg_Y <= 16'b0;
+			reg_Z <= 16'b0;
 			{I, T, H, S, V, N, Z, C} <= 8'b0;
 			S_reg <= 8'b0;
-    end
+		end
 		else S_reg <= {I, T, H, S, V, N, Z, C};
-  end
+	end
 
   always @(*) begin
     // handle partial reg_{X,Y,Z} loading
@@ -145,21 +145,15 @@ module avr_cpu (
 
   // instruction decoder && ALU - can split this up into something like write/flags/PC src but w/e
   always @ (*) begin
-			H = S_reg[5];
-			S = S_reg[4];
-			V = S_reg[3];
-			N = S_reg[2];
-			Z = S_reg[1];
-			C = S_reg[0];
-      reg_write = 1'b1;
+		H = S_reg[5];
+		S = S_reg[4];
+		V = S_reg[3];
+		N = S_reg[2];
+		Z = S_reg[1];
+		C = S_reg[0];
+		reg_write = 1'b1;
     casex(instr)
 			16'b0000000000000000: begin // NOP
-				H = S_reg[5];
-				S = S_reg[4];
-				V = S_reg[3];
-				N = S_reg[2];
-				Z = S_reg[1];
-				C = S_reg[0];
 				reg_write = 1'b0;
 			end
       16'b000x11xxxxxxxxxx: begin // ADD, ADC - bit 12 indicates carry
@@ -189,14 +183,11 @@ module avr_cpu (
         Z = (Rd_di == 8'b0);
         C = (~Rd_di[7] & K_8bit[7]) | (K_8bit[7] & Rd_di[7]) | (Rd_di[7] & ~Rd_do[7]);
       end
+			16'b1001010xxxxx0010: begin // SWAP
+				Rd_di = {Rd_do[3:0], Rd_do[7:4]};
+			end
 			16'b1110xxxxxxxxxxxx: begin // LDI
 				Rd_di = K_8bit;
-				H = S_reg[5];
-				S = S_reg[4];
-				V = S_reg[3];
-				N = S_reg[2];
-				Z = S_reg[1];
-				C = S_reg[0];   
 			end
     endcase
   end
