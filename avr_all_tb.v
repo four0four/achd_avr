@@ -5,7 +5,7 @@ module cpu_tb;
 	reg rst = 0;
 	reg clk = 0;
 
-	wire [15:0] jmp_k = 16'b0;
+	wire [15:0] jmp_k;
 	wire [7:0] rrdo, rddo, rddi;
 	wire [7:0] S;
   wire [2:0] pcsrc;
@@ -37,7 +37,7 @@ module cpu_tb;
 		#10 inst = 16'b0001111111001010; // adc r28, r26
 		#10 inst = 16'b0; // NOP
 		*/
-		#150 $finish;
+		#300 $finish;
 	end
 
 	always #5 clk = !clk;
@@ -50,6 +50,7 @@ module cpu_tb;
 			.d_addr(),
 			.S_reg(S),
 			.pc_select(pcsrc),
+			.pc_jmp(jmp_k),
 			.Rr_do(rrdo),
 			.Rd_do(rddo),
 			.Rd_di(rddi)

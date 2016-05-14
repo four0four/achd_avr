@@ -12,6 +12,7 @@ module avr_cpu (
 	output wire [15:0] d_addr,
 	
 	output reg [2:0] pc_select,
+	output reg [15:0] pc_jmp,
 
 	output reg [7:0] S_reg,
 
@@ -47,7 +48,7 @@ module avr_cpu (
 
 	// immediates
 	wire [7:0] K_8bit  = {instr[11:8], instr[3:0]};
-	wire signed [11:0] K_12bit = instr[11:0];
+	wire [11:0] K_12bit = instr[11:0];
 
 
 	// reg file outputs at current addrs
@@ -149,6 +150,27 @@ module avr_cpu (
 		end
 	end
 
+	// pc/jump control
+	always @ (*) begin
+		if(RST) running = 1'b0;
+
+		if(running) pc_select = 3'b010; // PC = PC + 1
+		else if (!RST) begin
+			running = 1'b1; 					// temp, yo
+			pc_select = 3'b001;				// PC = PC (hold)
+		end
+
+		casex(instr) 
+			16'b1100xxxxxxxxxxxx: begin	// RJMP
+				pc_select	 	= 3'b100; 			// PC += K
+				pc_jmp		 	= {{4{K_12bit[11]}}, K_12bit};
+				running = 0;
+			end
+		endcase
+     
+
+	end
+
 	// instruction decoder && ALU - can split this up into something like write/flags/PC src but w/e
 	always @ (*) begin
 		H = S_reg[5];
@@ -162,17 +184,11 @@ module avr_cpu (
 		reg_write = 1'b1;
 		Rd_di = 7'bz; // hi-z for now, maybe some pattern later
 
-		if(RST) running = 1'b0;
-
-		if(running) pc_select = 3'b010; // PC = PC + 1
-		else if (!RST) begin
-			running = 1'b1; 					// temp, yo
-			pc_select = 3'b001;				// PC = PC (hold)
-		end
-
-
 		casex(instr)
 			16'b0000000000000000: begin // NOP
+				reg_write = 1'b0;
+			end
+			16'b1100xxxxxxxxxxxx: begin	// RJMP
 				reg_write = 1'b0;
 			end
 			16'b000x11xxxxxxxxxx: begin // ADD, ADC - bit 12 indicates carry
@@ -229,6 +245,9 @@ module avr_fetch(
 
 	reg [15:0] PC_reg;
 	reg [15:0] PC_next;
+
+	// not sure if we'll need this yet
+	//wire signed [15:0] sign_jmp = jmp;
 
 	assign prog_addr = PC_next;
 
