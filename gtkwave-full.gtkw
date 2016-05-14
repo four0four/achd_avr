@@ -1,0 +1,52 @@
+[*]
+[*] GTKWave Analyzer v3.3.72 (w)1999-2016 BSI
+[*] Sat May 14 01:34:30 2016
+[*]
+[dumpfile] "/home/galen/git/achd_avr/full_test.vcd"
+[dumpfile_mtime] "Sat May 14 01:33:04 2016"
+[dumpfile_size] 4772
+[savefile] "/home/galen/git/achd_avr/gtkwave-full.gtkw"
+[timestart] 0
+[size] 1920 1028
+[pos] -1 -1
+*-4.595395 132 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] cpu_tb.
+[sst_width] 209
+[signals_width] 207
+[sst_expanded] 1
+[sst_vpaned_height] 299
+@28
+cpu_tb.c.RST
+cpu_tb.c.CLK
+@22
+cpu_tb.c.instr[15:0]
+cpu_tb.c.Rd_addr[4:0]
+cpu_tb.c.Rr_addr[4:0]
+cpu_tb.c.Rd_di[7:0]
+cpu_tb.c.Rd_do[7:0]
+cpu_tb.c.Rr_do[7:0]
+cpu_tb.c.reg_X[15:0]
+cpu_tb.c.reg_Y[15:0]
+cpu_tb.c.reg_Z[15:0]
+@800022
+cpu_tb.c.S_reg[7:0]
+@28
++{Interrupt} (0)cpu_tb.c.S_reg[7:0]
++{Transfer} (1)cpu_tb.c.S_reg[7:0]
++{Half Carry} (2)cpu_tb.c.S_reg[7:0]
++{Signed Test} (3)cpu_tb.c.S_reg[7:0]
++{(V) 2's comp over} (4)cpu_tb.c.S_reg[7:0]
++{Negative Flag} (5)cpu_tb.c.S_reg[7:0]
++{Zero Flag} (6)cpu_tb.c.S_reg[7:0]
++{Carry} (7)cpu_tb.c.S_reg[7:0] 
+@1001200
+-group_end
+@22
+cpu_tb.f.prog_addr[15:0]
+cpu_tb.f.prog_data[15:0]
+@28
+cpu_tb.f.pc_src[2:0]
+cpu_tb.c.running
+cpu_tb.c.reg_write
+[pattern_trace] 1
+[pattern_trace] 0
