@@ -2,10 +2,10 @@
 [*] GTKWave Analyzer v3.3.72 (w)1999-2016 BSI
 [*] Sun May 15 20:22:37 2016
 [*]
-[dumpfile] "/home/galen/git/achd_avr/full_test.vcd"
+[dumpfile] "./full_test.vcd"
 [dumpfile_mtime] "Sun May 15 20:09:31 2016"
 [dumpfile_size] 13368
-[savefile] "/home/galen/git/achd_avr/gtkwave-full.gtkw"
+[savefile] "./gtkwave-full.gtkw"
 [timestart] 2324
 [size] 1920 1053
 [pos] -1 -1
