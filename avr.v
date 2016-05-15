@@ -164,7 +164,7 @@ module avr_cpu (
 			16'b1100xxxxxxxxxxxx: begin	// RJMP
 				pc_select	 	= 3'b100; 			// PC += K
 				pc_jmp		 	= {{4{K_12bit[11]}}, K_12bit};
-				running = 0;
+				//running = 0;
 			end
 		endcase
      
@@ -218,6 +218,12 @@ module avr_cpu (
 				Z = (Rd_di == 8'b0);
 				C = (~Rd_di[7] & K_8bit[7]) | (K_8bit[7] & Rd_di[7]) | (Rd_di[7] & ~Rd_do[7]);
 			end
+			/*
+			16'b10110xxxxxxxxxxx: begin // IN
+			end
+			16'b10111xxxxxxxxxxx: begin // OUT
+			end
+			*/
 			16'b1001010xxxxx0010: begin // SWAP
 				Rd_di = {Rd_do[3:0], Rd_do[7:4]};
 			end
@@ -253,32 +259,31 @@ module avr_fetch(
 
 	// reset logic
 	always @ (posedge CLK) begin
-	if(RST) begin
-		PC_reg <= 16'b0;
-		PC_next <= 16'b0;
-		cur_instr <= 16'b0; // NOP
+		if(RST) begin
+			PC_reg <= 16'b0;
+			PC_next <= 16'b0;
+			cur_instr <= 16'b0; // NOP
+		end
 	end
-	end
-
-	// maybe move this, maybe remove it
-	always @ (*) begin
-	case(pc_src)
-		3'b000: PC_next = 16'b0;		// reset cond
-		3'b001: PC_next = PC_reg;		// hold/multi-cycle
-		3'b010: PC_next = PC_reg + 1;	// normal
-		3'b011: PC_next = PC_reg + 2;	// 32 bit instruction
-		3'b100: PC_next = PC_reg + jmp;	// rel jump
-		3'b101: PC_next = jmp;			// absolute jump
-		// bug:
-		3'b110: PC_next = 16'hFFFF;
-		3'b111: PC_next = 16'hFFFF;
-	endcase
-	end
-
 
 	always @ (posedge CLK) begin
 		PC_reg <= PC_next;
 		cur_instr <= prog_data;
+	end
+
+	// maybe move this, maybe remove it
+	always @ (*) begin
+		case(pc_src)
+			3'b000: PC_next = 16'b0;		// reset cond
+			3'b001: PC_next = PC_reg;		// hold/multi-cycle
+			3'b010: PC_next = PC_reg + 1;	// normal
+			3'b011: PC_next = PC_reg + 2;	// 32 bit instruction
+			3'b100: PC_next = PC_reg + jmp;	// rel jump
+			3'b101: PC_next = jmp;			// absolute jump
+			// bug:
+			3'b110: PC_next = 16'hFFFF;
+			3'b111: PC_next = 16'hFFFF;
+		endcase
 	end
 
 endmodule

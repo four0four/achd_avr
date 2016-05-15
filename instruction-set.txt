@@ -8,6 +8,13 @@ thoughts: the reference cpu (at90s1200) uses a 3-entry hardware stack, and doesn
 
 bit 14 is imm flag?
 
+memory map (SRAM - flash is flat and uniform):
+0x0000 - 0x001F: 32 general purpose registers
+0x0020 - 0x005F: 64 IO registers
+0x0060 - 0xFFFF: data
+
+memory map (IO - accessibly only by IN/OUT/CBI/SBI/SBIC/SBIS):
+0x00 - 0x40: 64 IO registers
 
 add 
 	Rd <- Rd + Rr
