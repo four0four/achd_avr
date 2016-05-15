@@ -14,7 +14,21 @@ memory map (SRAM - flash is flat and uniform):
 0x0060 - 0xFFFF: data
 
 memory map (IO - accessibly only by IN/OUT/CBI/SBI/SBIC/SBIS):
-0x00 - 0x40: 64 IO registers
+0x00 - 0x3F: 64 IO registers
+	0x3F: SREG
+	...
+	0x1B: PORTA
+	0x1A: DDRA
+	0x19: PINA
+	0x18: PORTB
+	0x17: DDRB
+	0x16: PINB
+	0x15 - 0x13: GPIOR (general purpose storage - ignore?)
+	0x12: PORTD
+	0x11: DDRD
+	0x10: PIND
+
+	all others read 0 write don't care
 
 add 
 	Rd <- Rd + Rr
