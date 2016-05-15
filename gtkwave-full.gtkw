@@ -1,25 +1,28 @@
 [*]
 [*] GTKWave Analyzer v3.3.72 (w)1999-2016 BSI
-[*] Sat May 14 01:34:30 2016
+[*] Sun May 15 20:22:37 2016
 [*]
 [dumpfile] "/home/galen/git/achd_avr/full_test.vcd"
-[dumpfile_mtime] "Sat May 14 01:33:04 2016"
-[dumpfile_size] 4772
+[dumpfile_mtime] "Sun May 15 20:09:31 2016"
+[dumpfile_size] 13368
 [savefile] "/home/galen/git/achd_avr/gtkwave-full.gtkw"
-[timestart] 0
-[size] 1920 1028
+[timestart] 2324
+[size] 1920 1053
 [pos] -1 -1
-*-4.595395 132 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-7.521615 3878 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] cpu_tb.
 [sst_width] 209
 [signals_width] 207
 [sst_expanded] 1
-[sst_vpaned_height] 299
+[sst_vpaned_height] 604
 @28
 cpu_tb.c.RST
 cpu_tb.c.CLK
 @22
 cpu_tb.c.instr[15:0]
+@28
+cpu_tb.c.reg_write
+@22
 cpu_tb.c.Rd_addr[4:0]
 cpu_tb.c.Rr_addr[4:0]
 cpu_tb.c.Rd_di[7:0]
@@ -28,7 +31,7 @@ cpu_tb.c.Rr_do[7:0]
 cpu_tb.c.reg_X[15:0]
 cpu_tb.c.reg_Y[15:0]
 cpu_tb.c.reg_Z[15:0]
-@800022
+@c00022
 cpu_tb.c.S_reg[7:0]
 @28
 +{Interrupt} (0)cpu_tb.c.S_reg[7:0]
@@ -38,15 +41,76 @@ cpu_tb.c.S_reg[7:0]
 +{(V) 2's comp over} (4)cpu_tb.c.S_reg[7:0]
 +{Negative Flag} (5)cpu_tb.c.S_reg[7:0]
 +{Zero Flag} (6)cpu_tb.c.S_reg[7:0]
-+{Carry} (7)cpu_tb.c.S_reg[7:0] 
-@1001200
++{Carry} (7)cpu_tb.c.S_reg[7:0]
+@1401200
+-group_end
+@c00022
+cpu_tb.f.prog_addr[15:0]
+@28
+(0)cpu_tb.f.prog_addr[15:0]
+(1)cpu_tb.f.prog_addr[15:0]
+(2)cpu_tb.f.prog_addr[15:0]
+(3)cpu_tb.f.prog_addr[15:0]
+(4)cpu_tb.f.prog_addr[15:0]
+(5)cpu_tb.f.prog_addr[15:0]
+(6)cpu_tb.f.prog_addr[15:0]
+(7)cpu_tb.f.prog_addr[15:0]
+(8)cpu_tb.f.prog_addr[15:0]
+(9)cpu_tb.f.prog_addr[15:0]
+(10)cpu_tb.f.prog_addr[15:0]
+(11)cpu_tb.f.prog_addr[15:0]
+(12)cpu_tb.f.prog_addr[15:0]
+(13)cpu_tb.f.prog_addr[15:0]
+(14)cpu_tb.f.prog_addr[15:0]
+(15)cpu_tb.f.prog_addr[15:0]
+@1401200
 -group_end
 @22
-cpu_tb.f.prog_addr[15:0]
 cpu_tb.f.prog_data[15:0]
-@28
+@c00028
 cpu_tb.f.pc_src[2:0]
-cpu_tb.c.running
-cpu_tb.c.reg_write
+@28
+(0)cpu_tb.f.pc_src[2:0]
+(1)cpu_tb.f.pc_src[2:0]
+(2)cpu_tb.f.pc_src[2:0]
+@1401200
+-group_end
+@c00022
+[color] 6
+cpu_tb.f.PC_next[15:0]
+@28
+(0)cpu_tb.f.PC_next[15:0]
+(1)cpu_tb.f.PC_next[15:0]
+(2)cpu_tb.f.PC_next[15:0]
+(3)cpu_tb.f.PC_next[15:0]
+(4)cpu_tb.f.PC_next[15:0]
+(5)cpu_tb.f.PC_next[15:0]
+(6)cpu_tb.f.PC_next[15:0]
+(7)cpu_tb.f.PC_next[15:0]
+(8)cpu_tb.f.PC_next[15:0]
+(9)cpu_tb.f.PC_next[15:0]
+(10)cpu_tb.f.PC_next[15:0]
+(11)cpu_tb.f.PC_next[15:0]
+(12)cpu_tb.f.PC_next[15:0]
+(13)cpu_tb.f.PC_next[15:0]
+(14)cpu_tb.f.PC_next[15:0]
+(15)cpu_tb.f.PC_next[15:0]
+@1401200
+-group_end
+@22
+[color] 6
+cpu_tb.f.PC_reg[15:0]
+@29
+[color] 7
+cpu_tb.c.stall
+@c00022
+cpu_tb.c.holdstate[3:0]
+@28
+(0)cpu_tb.c.holdstate[3:0]
+(1)cpu_tb.c.holdstate[3:0]
+(2)cpu_tb.c.holdstate[3:0]
+(3)cpu_tb.c.holdstate[3:0]
+@1401200
+-group_end
 [pattern_trace] 1
 [pattern_trace] 0

@@ -16,6 +16,8 @@ module avr_cpu (
 
 	output reg [7:0] S_reg,
 
+  output reg stall,
+
 
 	// debugging
 	output [7:0] Rr_do, 
@@ -71,6 +73,9 @@ module avr_cpu (
 	// temp!
 	reg running;
 
+  reg [3:0] holdstate, next_holdstate;
+
+
 	// SREG - half of these probably won't be needed
 	// interrupt enable		I
 	// bit copy storage		T
@@ -93,7 +98,6 @@ module avr_cpu (
 	end
 	endgenerate
 
-
 	always @(posedge CLK) begin	
 		if(RST) begin			// reset cond
 			reg_X <= 16'b0;
@@ -101,9 +105,33 @@ module avr_cpu (
 			reg_Z <= 16'b0;
 			{I, T, H, S, V, N, Z, C} <= 8'b0;
 			S_reg <= 8'b0;
+      holdstate <= 4'b0;
+      next_holdstate <= 4'b0;
+      stall <= 0;
 		end
 		else S_reg <= {I, T, H, S, V, N, Z, C};
 	end
+
+ 	always @ (posedge CLK) begin
+		if (reg_write == 1'b1) begin
+			if (Rd_addr < 5'd26) reg_file[Rd_addr] = Rd_di;
+			// handle partial reg_{X,Y,Z} writing
+			else begin
+				case(Rd_addr)
+					5'd26: reg_X[7:0]  = Rd_di;
+					5'd27: reg_X[15:8] = Rd_di;
+					5'd28: reg_Y[7:0]  = Rd_di;
+					5'd29: reg_Y[15:8] = Rd_di;
+					5'd30: reg_Z[7:0]  = Rd_di;
+					5'd31: reg_Z[15:8] = Rd_di;
+				endcase
+			end
+		end
+	end       
+                         
+  always @ (posedge CLK) begin // multi-cycle nonsense
+    holdstate <= next_holdstate;
+  end  
 
 	always @(*) begin
 		// handle partial reg_{X,Y,Z} loading
@@ -133,43 +161,32 @@ module avr_cpu (
 		end 
 	end
 
-	always @ (posedge CLK) begin // negedge? lower freq, but we may actually work
-		if (reg_write == 1'b1) begin
-			if (Rd_addr < 5'd26) reg_file[Rd_addr] = Rd_di;
-			// handle partial reg_{X,Y,Z} writing
-			else begin
-				case(Rd_addr)
-					5'd26: reg_X[7:0]  = Rd_di;
-					5'd27: reg_X[15:8] = Rd_di;
-					5'd28: reg_Y[7:0]  = Rd_di;
-					5'd29: reg_Y[15:8] = Rd_di;
-					5'd30: reg_Z[7:0]  = Rd_di;
-					5'd31: reg_Z[15:8] = Rd_di;
-				endcase
-			end
-		end
-	end
-
-	// pc/jump control
+	// multicycle instruction handling
 	always @ (*) begin
-		if(RST) running = 1'b0;
 
-		if(running) pc_select = 3'b010; // PC = PC + 1
-		else if (!RST) begin
-			running = 1'b1; 					// temp, yo
-			pc_select = 3'b001;				// PC = PC (hold)
-		end
+    if(RST) pc_select = 3'b000;
+		else pc_select = 3'b010; // PC = PC + 1
+
 
 		casex(instr) 
-			16'b1100xxxxxxxxxxxx: begin	// RJMP
+			16'b1100xxxxxxxxxxxx: begin	  // RJMP
 				pc_select	 	= 3'b100; 			// PC += K
 				pc_jmp		 	= {{4{K_12bit[11]}}, K_12bit};
-				//running = 0;
+        case(holdstate) 
+          4'b0000: begin
+            stall = 1'b1;
+            next_holdstate = 4'b0001;
+          end
+          4'b0001: begin
+            stall = 1'b0;
+            next_holdstate = 4'b0000;
+            pc_select = 3'b010;
+          end  
+        endcase
 			end
-		endcase
-     
+		endcase // casex(instr)
 
-	end
+	end // always
 
 	// instruction decoder && ALU - can split this up into something like write/flags/PC src but w/e
 	always @ (*) begin
@@ -185,10 +202,9 @@ module avr_cpu (
 		Rd_di = 7'bz; // hi-z for now, maybe some pattern later
 
 		casex(instr)
-			16'b0000000000000000: begin // NOP
-				reg_write = 1'b0;
-			end
-			16'b1100xxxxxxxxxxxx: begin	// RJMP
+      // chuck things that don't write back here
+			16'b0000000000000000,       // NOP
+      16'b1100xxxxxxxxxxxx: begin // RJMP
 				reg_write = 1'b0;
 			end
 			16'b000x11xxxxxxxxxx: begin // ADD, ADC - bit 12 indicates carry
@@ -230,8 +246,8 @@ module avr_cpu (
 			16'b1110xxxxxxxxxxxx: begin // LDI
 				Rd_di = K_8bit;
 			end
-		endcase
-	end
+		endcase // casex(instr)
+	end // always
 
 endmodule
 
@@ -239,6 +255,7 @@ endmodule
 module avr_fetch(
 	input wire CLK,
 	input wire RST,
+	input wire stall,
 
 	output reg [15:0] cur_instr,
 	output wire [15:0] prog_addr,
@@ -252,23 +269,25 @@ module avr_fetch(
 	reg [15:0] PC_reg;
 	reg [15:0] PC_next;
 
-	// not sure if we'll need this yet
-	//wire signed [15:0] sign_jmp = jmp;
+  reg [15:0] instr_last;
 
 	assign prog_addr = PC_next;
 
-	// reset logic
 	always @ (posedge CLK) begin
+    // reset logic
 		if(RST) begin
 			PC_reg <= 16'b0;
 			PC_next <= 16'b0;
 			cur_instr <= 16'b0; // NOP
 		end
-	end
 
-	always @ (posedge CLK) begin
-		PC_reg <= PC_next;
-		cur_instr <= prog_data;
+    else begin
+      PC_reg <= PC_next;
+      if (!stall) begin
+        cur_instr <= prog_data;
+      end
+    end
+
 	end
 
 	// maybe move this, maybe remove it
