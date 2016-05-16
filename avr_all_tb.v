@@ -8,19 +8,19 @@ module cpu_tb;
 	wire [15:0] jmp_k;
 	wire [7:0] rrdo, rddo, rddi;
 	wire [7:0] S;
-  wire [2:0] pcsrc;
+	wire [2:0] pcsrc;
 	wire [15:0] progaddr;
 	wire [15:0] progdata;
 
-  wire [7:0] data;
-  wire [15:0] dataaddr;
-  wire dwrite;
+	wire [7:0] data;
+	wire [15:0] dataaddr;
+	wire dwrite;
 
 	reg [15:0] pmem [511:0];
 
 	wire [15:0] inst;
 
-  wire stall;
+	wire stall;
 
 	initial begin
 		$dumpfile("full_test.vcd");
@@ -40,8 +40,8 @@ module cpu_tb;
 			.instr(inst),
 			.p_addr(),
 			.d_addr(dataaddr),
-      .data_write(dwrite),
-      .data(data),
+			.data_write(dwrite),
+			.data(data),
 			.S_reg(S),
 			.pc_select(pcsrc),
 			.pc_jmp(jmp_k),
@@ -62,75 +62,73 @@ module cpu_tb;
 	);                  
 
 
-  program_memory m(
-    .CLK(clk),
-    .RST(rst),
-    .addr(progaddr[8:0]),
-    .data(progdata),
-    .enable(1'b1)
-  );
+	program_memory m(
+		.CLK(clk),
+		.RST(rst),
+		.addr(progaddr[8:0]),
+		.data(progdata),
+		.enable(1'b1)
+	);
 
-  data_memory d(
-    .CLK(clk),
-    .RST(rst),
-    .addr(dataaddr),
-    .write_en(dwrite),
-    .data(data)
-  );
+	data_memory d(
+		.CLK(clk),
+		.RST(rst),
+		.addr(dataaddr),
+		.write_en(dwrite),
+		.data(data)
+	);
 
 
 endmodule
 
 
 module program_memory(
-  input wire [8:0] addr,
-  input wire enable,
-  input wire CLK,
-  input wire RST,
-  output reg [15:0] data);
+	input wire [8:0] addr,
+	input wire enable,
+	input wire CLK,
+	input wire RST,
+	output reg [15:0] data);
 
-  reg [15:0] rom [511:0];
+	reg [15:0] rom [511:0];
 
-  initial begin
+	initial begin
 		$readmemh("stack_test.hex", rom, 0, 511);
-    data = 16'd0;
-  end
+		data = 16'd0;
+	end
 
-  always @ (posedge CLK) begin
-    if(enable) begin
-      data <= {rom[addr][7:0], rom[addr][15:8]};
-    end
-    else begin
-      data <= 16'bz;
-    end
-    if(RST) begin
-      data <= 16'b0;
-    end
-  end
+	always @ (posedge CLK) begin
+		if(enable) begin
+			data <= {rom[addr][7:0], rom[addr][15:8]};
+		end
+		else begin
+			data <= 16'bz;
+		end
+		if(RST) begin
+			data <= 16'b0;
+		end
+	end
 endmodule
 
 module data_memory(
-  input wire [8:0] addr,
-  input wire write_en,
-  input wire CLK,
-  input wire RST,
-  inout wire [7:0] data);
+	input wire [8:0] addr,
+	input wire write_en,
+	input wire CLK,
+	input wire RST,
+	inout wire [7:0] data);
 
-  reg [7:0] ram [511:0];
-  reg [7:0] data_r; 
+	reg [7:0] ram [511:0];
+	reg [7:0] data_r; 
 
-  assign data = write_en ? 8'bz : data_r;
+	assign data = write_en ? 8'bz : data_r;
 
-  always @ (posedge CLK) begin
-    data_r <= ram[addr];
-    if(write_en) begin
-      ram[addr] <= data;
-    end
-    if(RST) begin
-      data_r <= 16'b0;
-    end
-  end                   
+	always @ (posedge CLK) begin
+		data_r <= ram[addr];
+		if(write_en) begin
+			ram[addr] <= data;
+		end
+		if(RST) begin
+			data_r <= 16'b0;
+		end
+	end                   
 
 endmodule
-   
-

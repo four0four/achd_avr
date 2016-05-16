@@ -2,21 +2,21 @@ immediate instructions can only use R16 - R31 (Rd is {1, dddd} instead of ddddd)
 
 thoughts: the reference cpu (at90s1200) uses a 3-entry hardware stack, and doesn't support push/pop
 	we could easily add that, and I'd definitely rather implement a SRAM stack with SP
-  tiny2313 is a good core that has push/pop without bigger things like CALL (only rcall) 
-  *does* have word length instructions
-  downsides: LD variants become important (indirect BS)
+	tiny2313 is a good core that has push/pop without bigger things like CALL (only rcall) 
+	*does* have word length instructions
+	downsides: LD variants become important (indirect BS)
 
 notes: 
-  program/flash address 0 is skipped - blame the pipeline.
-    - other option is double-execute, unless I add logic to fix that, which doesn't seem worth it.
+	program/flash address 0 is skipped - blame the pipeline.
+		- other option is double-execute, unless I add logic to fix that, which doesn't seem worth it.
 
 todo: 
-  IO memory/registers
-  Data memory + related instructions
-  misc arithmetic instructions
-  conditional/switched branches
-  skip if $condition 
-  stack instructions (rcall, push, pop, ret, etc)
+	IO memory/registers
+	Data memory + related instructions
+	misc arithmetic instructions
+	conditional/switched branches
+	skip if $condition 
+	stack instructions (rcall, push, pop, ret, etc)
 
 memory map (SRAM - flash is flat and uniform):
 0x0000 - 0x001F: 32 general purpose registers
@@ -26,8 +26,8 @@ memory map (SRAM - flash is flat and uniform):
 memory map (IO - accessibly only by IN/OUT/CBI/SBI/SBIC/SBIS):
 0x00 - 0x3F: 64 IO registers
 	0x3F: SREG
-  0x3E: SPH
-  0x3D: SPL
+	0x3E: SPH
+	0x3D: SPL
 	...
 	0x1B: PORTA
 	0x1A: DDRA
@@ -152,8 +152,8 @@ rol
 ror
 asr
 swap
-  Rd[7:4] = Rd[3:0], Rd[3:0] = Rd[7:4]
-  1001 010d dddd 0010
+	Rd[7:4] = Rd[3:0], Rd[3:0] = Rd[7:4]
+	1001 010d dddd 0010
 bset
 bclr
 bst
