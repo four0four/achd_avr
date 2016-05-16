@@ -4,12 +4,14 @@ module avr_cpu (
 	// currently held instruction
 	// feeds combinational shit
 	input wire [15:0] instr,
+  inout wire [7:0]  data,
 
 
 	// non-register memories
 	// pad with 0s to fit
-	output wire [15:0] p_addr,
-	output wire [15:0] d_addr,
+	output reg [15:0] p_addr,
+	output reg [15:0] d_addr,
+  output reg data_write,
 	
 	output reg [2:0] pc_select,
 	output reg [15:0] pc_jmp,
@@ -47,6 +49,7 @@ module avr_cpu (
 	wire [4:0] Rr_addr = {instr[9],instr[3:0]};
 	// if we're using immediate addressing, can only access upper 16 regs
 	wire [4:0] Rd_addr = (immediate == 1'b1) ? {1'b1, instr[7:4]} : instr[8:4];
+  wire [5:0] io_mem_addr = {instr[10:9], instr[3:0]};
 
 	// immediates
 	wire [7:0] K_8bit  = {instr[11:8], instr[3:0]};
@@ -70,10 +73,18 @@ module avr_cpu (
 	reg [15:0] reg_Z;
 	reg [15:0] reg_SP; // we want this?
 
-	// temp!
-	reg running;
-
+  // multicycle state machine
   reg [3:0] holdstate, next_holdstate;
+
+  // data memory control
+  reg [7:0] data_out;
+  assign data = (data_write == 1'b1) ? data_out : 8'bz;
+
+  // IO mem control
+  reg [7:0] io_mem_out;
+  wire [7:0] io_mem_in = Rd_do;
+  reg io_mem_write;
+  reg [7:0] gpior [2:0];
 
 
 	// SREG - half of these probably won't be needed
@@ -103,11 +114,13 @@ module avr_cpu (
 			reg_X <= 16'b0;
 			reg_Y <= 16'b0;
 			reg_Z <= 16'b0;
+			reg_SP <= 16'b0;
 			{I, T, H, S, V, N, Z, C} <= 8'b0;
 			S_reg <= 8'b0;
       holdstate <= 4'b0;
       next_holdstate <= 4'b0;
       stall <= 0;
+      data_write <= 0;
 		end
 		else S_reg <= {I, T, H, S, V, N, Z, C};
 	end
@@ -167,23 +180,68 @@ module avr_cpu (
     if(RST) pc_select = 3'b000;
 		else pc_select = 3'b010; // PC = PC + 1
 
+    data_write = 1'b0;
 
 		casex(instr) 
 			16'b1100xxxxxxxxxxxx: begin	  // RJMP
 				pc_select	 	= 3'b100; 			// PC += K
 				pc_jmp		 	= {{4{K_12bit[11]}}, K_12bit};
         case(holdstate) 
-          4'b0000: begin
+          4'h0: begin
             stall = 1'b1;
-            next_holdstate = 4'b0001;
+            next_holdstate = 4'h1;
           end
-          4'b0001: begin
+          4'h1: begin
             stall = 1'b0;
-            next_holdstate = 4'b0000;
+            next_holdstate = 4'h0;
             pc_select = 3'b010;
           end  
         endcase
-			end
+			end // /RJMP
+      16'b1001000xxxxx1111: begin // POP
+        reg_SP = reg_SP;
+        case(holdstate)
+          // may be worth latching something here?
+          // I don't think it matters right now with a pipeline this simple
+          4'h0: begin
+            stall = 1'b1;
+            pc_select = 3'b001;
+
+            next_holdstate = 4'h1;
+
+            d_addr = reg_SP + 1;
+          end
+          4'h1: begin
+            stall = 1'b0;
+            reg_SP = reg_SP + 1;
+            next_holdstate = 4'h0;
+          end
+        endcase
+      end // /POP
+      16'b1001001xxxxx1111: begin // PUSH
+        case(holdstate)
+          4'h0: begin
+            // stall 1 cycle for memory
+            // here we do NOT flush
+            stall = 1'b1;
+            pc_select = 3'b001;
+
+            next_holdstate = 4'h1;
+
+            // set up data memory things
+            d_addr = reg_SP;
+            data_write = 1'b1;
+            data_out = Rd_do;
+          end
+          4'h1: begin
+            // done, clean up
+            stall = 1'b0;
+            reg_SP = reg_SP - 16'h0001;
+            next_holdstate = 4'h0;
+            data_write = 1'b0;
+          end
+        endcase
+      end // /PUSH
 		endcase // casex(instr)
 
 	end // always
@@ -200,10 +258,12 @@ module avr_cpu (
 		// default to write-out
 		reg_write = 1'b1;
 		Rd_di = 7'bz; // hi-z for now, maybe some pattern later
+    io_mem_write = 1'b0;
 
 		casex(instr)
       // chuck things that don't write back here
 			16'b0000000000000000,       // NOP
+      16'b1001001xxxxx1111,       // PUSH
       16'b1100xxxxxxxxxxxx: begin // RJMP
 				reg_write = 1'b0;
 			end
@@ -234,20 +294,54 @@ module avr_cpu (
 				Z = (Rd_di == 8'b0);
 				C = (~Rd_di[7] & K_8bit[7]) | (K_8bit[7] & Rd_di[7]) | (Rd_di[7] & ~Rd_do[7]);
 			end
-			/*
 			16'b10110xxxxxxxxxxx: begin // IN
+        Rd_di = io_mem_out;
 			end
 			16'b10111xxxxxxxxxxx: begin // OUT
+        io_mem_write = 1'b1;  
+				reg_write = 1'b0;
 			end
-			*/
 			16'b1001010xxxxx0010: begin // SWAP
 				Rd_di = {Rd_do[3:0], Rd_do[7:4]};
 			end
 			16'b1110xxxxxxxxxxxx: begin // LDI
 				Rd_di = K_8bit;
 			end
+      16'b1001000xxxxx1111: begin // POP
+        Rd_di = data;
+      end
 		endcase // casex(instr)
 	end // always
+
+  // IO memory 
+  always @(*) begin 
+    io_mem_out = 8'bz; // maybe a tell-tale pattern?
+    case(io_mem_addr) 
+      8'h3F:  io_mem_out = S_reg;
+      8'h3E:  io_mem_out = reg_SP[15:8];
+      8'h3D:  io_mem_out = reg_SP[7:0];
+
+      8'h15:  io_mem_out = gpior[2];
+      8'h14:  io_mem_out = gpior[1];
+      8'h13:  io_mem_out = gpior[0];
+    endcase
+  end
+
+  always @(posedge CLK) begin
+
+    // write-back
+    if (io_mem_write == 1'b1) begin
+      case(io_mem_addr)
+        8'h3F:  S_reg <= io_mem_in;
+        8'h3E:  reg_SP[15:8] <= io_mem_in;
+        8'h3D:  reg_SP[7:0] <= io_mem_in;
+
+        8'h15:  gpior[2] <= io_mem_in;
+        8'h14:  gpior[1] <= io_mem_in;
+        8'h13:  gpior[0] <= io_mem_in;
+      endcase
+    end
+  end
 
 endmodule
 

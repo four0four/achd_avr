@@ -26,6 +26,8 @@ memory map (SRAM - flash is flat and uniform):
 memory map (IO - accessibly only by IN/OUT/CBI/SBI/SBIC/SBIS):
 0x00 - 0x3F: 64 IO registers
 	0x3F: SREG
+  0x3E: SPH
+  0x3D: SPL
 	...
 	0x1B: PORTA
 	0x1A: DDRA
