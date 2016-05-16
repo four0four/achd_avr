@@ -183,6 +183,9 @@ module avr_cpu (
     data_write = 1'b0;
 
 		casex(instr) 
+      16'b1101111010101101: begin // lol
+        stall = 1'b1;
+      end
 			16'b1100xxxxxxxxxxxx: begin	  // RJMP
 				pc_select	 	= 3'b100; 			// PC += K
 				pc_jmp		 	= {{4{K_12bit[11]}}, K_12bit};
