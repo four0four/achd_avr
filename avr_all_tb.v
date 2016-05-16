@@ -98,7 +98,7 @@ module program_memory(
 
   always @ (posedge CLK) begin
     if(enable) begin
-      data <= rom[addr];
+      data <= {rom[addr][7:0], rom[addr][15:8]};
     end
     else begin
       data <= 16'bz;
