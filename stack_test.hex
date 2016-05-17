@@ -1,12 +1,15 @@
-0000
-cfef
-d4e0
-debf
-0000
-cdbf
-0000
-df93
-af91
-0000
-ADDE
-DEC0
+0000	// nop
+cfef	// ldi r28, 0xff
+d4e0	// ldi r29, 0x4f
+debf	// out 0x3e, r29
+0000	// nop
+cdbf	// out 0x3d, r28
+0000	// nop
+df93	// push r29 (Y high byte)
+05e5	// ldi r16, 0x55
+0f93	// push r16
+afef 	// ldi r26, 0xff
+af91	// pop r26 (X low byte)
+bf91	// pop r27 (X low byte)
+ADDE	// DEAD
+DEC0	// C0DE

@@ -130,6 +130,25 @@ brie
 brid
 
 ld
+	3 varients: RegX, RegY (arb. displacement), RegZ (arb. displacement)
+	break into classes: no displacement (so from [X], [Y], or [Z]), post-inc, pre-dec, offset (q)
+		within each just calculate reference (X, Y, Z) + offset (+1, -1, +Q) and puke it to the ram addr
+	LDX
+		1001 000d dddd 1100 just load from [X] (1 cycle) - how the fuck?)
+			note - this probably assuming asynch SRAM, which we don't have. either make it 2 cycles or double pump the ram clk
+		1001 000d dddd 1101 load and post-increment (2 cycle)
+		1001 000d dddd 1110 load and pre-decrement (3 cycle - we can make this 2 cycle)
+	LDY
+		1000 000d dddd 1000 just load from [Y]
+		1001 000d dddd 1001 load and post-increment
+		1001 000d dddd 1010 load and pre-decrement
+		10q0 qq0d dddd 1qqq load from [Y+q]
+	LDZ
+		1000 000d dddd 1000 just load from [Y]
+		1001 000d dddd 1001 load and post-increment
+		1001 000d dddd 1010 load and pre-decrement
+		10q0 qq0d dddd 1qqq load from [Y+q]
+
 st
 mov
 	Rd <- Rr
