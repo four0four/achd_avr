@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 echo -e "\x1b[32m[+] running AVR core tests...\x1b[33m"
 iverilog -o cpu.vvp cpu_tb.v avr.v
 vvp cpu.vvp
