@@ -61,7 +61,6 @@ module cpu_tb;
 		.pc_src(pcsrc)
 	);                  
 
-
 	program_memory m(
 		.CLK(clk),
 		.RST(rst),
@@ -73,11 +72,10 @@ module cpu_tb;
 	data_memory d(
 		.CLK(clk),
 		.RST(rst),
-		.addr(dataaddr),
+		.addr(dataaddr[10:0]),
 		.write_en(dwrite),
 		.data(data)
 	);
-
 
 endmodule
 
@@ -103,20 +101,23 @@ module program_memory(
 		else begin
 			data <= 16'bz;
 		end
+
 		if(RST) begin
 			data <= 16'b0;
 		end
 	end
+
 endmodule
 
+
 module data_memory(
-	input wire [8:0] addr,
+	input wire [10:0] addr,
 	input wire write_en,
 	input wire CLK,
 	input wire RST,
 	inout wire [7:0] data);
 
-	reg [7:0] ram [511:0];
+	reg [7:0] ram [2047:0];
 	reg [7:0] data_r; 
 
 	assign data = write_en ? 8'bz : data_r;
@@ -126,6 +127,7 @@ module data_memory(
 		if(write_en) begin
 			ram[addr] <= data;
 		end
+
 		if(RST) begin
 			data_r <= 16'b0;
 		end
