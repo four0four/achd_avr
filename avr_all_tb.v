@@ -11,6 +11,7 @@ module cpu_tb;
 	wire [2:0] pcsrc;
 	wire [15:0] progaddr;
 	wire [15:0] progdata;
+	wire [15:0] pc;
 
 	wire [7:0] data;
 	wire [15:0] dataaddr;
@@ -28,7 +29,7 @@ module cpu_tb;
 		$dumpvars(0, f);
 		#0 rst = 1;
 		#10 rst = 0;
-		#500 $finish;
+		#800 $finish;
 	end
 
 	always #5 clk = !clk;
@@ -45,6 +46,7 @@ module cpu_tb;
 			.S_reg(S),
 			.pc_select(pcsrc),
 			.pc_jmp(jmp_k),
+			.cur_pc(pc),
 			.Rr_do(rrdo),
 			.Rd_do(rddo),
 			.Rd_di(rddi)
@@ -56,6 +58,7 @@ module cpu_tb;
 		.stall(cpu_stall),
 		.cur_instr(inst),
 		.prog_addr(progaddr),
+		.current_pc(pc),
 		.jmp(jmp_k),
 		.prog_data(progdata),
 		.pc_src(pcsrc)
@@ -90,7 +93,7 @@ module program_memory(
 	reg [15:0] rom [511:0];
 
 	initial begin
-		$readmemh("stack_test.hex", rom, 0, 511);
+		$readmemh("loop_test.hex", rom, 0, 511);
 		data = 16'd0;
 	end
 
@@ -121,6 +124,13 @@ module data_memory(
 	reg [7:0] data_r; 
 
 	assign data = write_en ? 8'bz : data_r;
+
+	integer i;
+	initial begin
+		for (i = 0; i < 2048; i = i + 1) begin
+			ram[i] = 8'b0;
+		end
+	end
 
 	always @ (posedge CLK) begin
 		data_r <= ram[addr];
