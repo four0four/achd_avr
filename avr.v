@@ -273,17 +273,23 @@ module avr_cpu (
 						stall = 1'b1;
 						next_holdstate = 4'h2;
 						d_addr = reg_SP + 16'h2;
-					end
-					4'h2: begin
-						stall = 1'b1;
-						next_holdstate = 4'h3;
+
 						pc_select = 3'b101;
 					end
+					4'h2: begin
+						stall = 1'b0;
+						next_holdstate = 4'h0;
+
+						//pc_select = 3'b101;
+						pc_select = 3'b010;
+					end
+					/*
 					4'h3: begin
 						stall = 1'b0;
 						pc_select = 3'b010;
 						next_holdstate = 4'h0;
 					end
+					*/
 				endcase
 			end // /RET
 
