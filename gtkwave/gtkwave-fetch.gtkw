@@ -2,10 +2,10 @@
 [*] GTKWave Analyzer v3.3.72 (w)1999-2016 BSI
 [*] Wed May  4 15:48:03 2016
 [*]
-[dumpfile] "./fetch_test.vcd"
+[dumpfile] "../fetch_test.vcd"
 [dumpfile_mtime] "Wed May  4 15:47:58 2016"
 [dumpfile_size] 2478
-[savefile] "./gtkware-fetch.gtkw"
+[savefile] "../gtkware-fetch.gtkw"
 [timestart] 0
 [size] 1920 1028
 [pos] -1 -1
