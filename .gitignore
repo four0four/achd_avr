@@ -1,5 +1,9 @@
+# icarus/sim files
 *.vvp
 *.vcd
+
+# quartus backups
+*.bak
 
 # vim
 *.swo

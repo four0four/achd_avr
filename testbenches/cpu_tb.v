@@ -38,7 +38,7 @@ module cpu_tb;
 			.CLK(clk),
 			.RST(rst),
 			.instr(inst),
-			.p_addr(),
+//			.p_addr(),
 			.d_addr(),
 			.S_reg(S),
 			.Rr_do(rrdo),

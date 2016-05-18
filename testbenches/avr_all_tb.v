@@ -39,7 +39,7 @@ module cpu_tb;
 			.RST(rst),
 			.stall(cpu_stall),
 			.instr(inst),
-			.p_addr(),
+//			.p_addr(),
 			.d_addr(dataaddr),
 			.data_write(dwrite),
 			.data(data),
