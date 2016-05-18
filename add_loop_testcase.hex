@@ -11,6 +11,6 @@ CFBF					// out SREG, r28
 fecf      		// rjmp loop
          	
 //         	addone:
-0000
-CA1F      		//adc r28, r26
-0895      		//ret
+0000					// nop
+CA1F      		// adc r28, r26
+0895      		// ret

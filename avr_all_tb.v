@@ -29,7 +29,7 @@ module cpu_tb;
 		$dumpvars(0, f);
 		#0 rst = 1;
 		#10 rst = 0;
-		#800 $finish;
+		#8000 $finish;
 	end
 
 	always #5 clk = !clk;
