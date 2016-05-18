@@ -93,7 +93,7 @@ module program_memory(
 	reg [15:0] rom [511:0];
 
 	initial begin
-		$readmemh("add_loop_testcase.hex", rom, 0, 511);
+		$readmemh("testcases/add_loop_testcase.hex", rom, 0, 511);
 		data = 16'd0;
 	end
 

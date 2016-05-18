@@ -12,7 +12,7 @@ module cpu_tb;
 
 	initial begin
 		//$readmemh("fetchtest.hex", pmem);
-		$dumpfile("cpu_test.vcd");
+		$dumpfile("testcases/cpu_test.vcd");
 		$dumpvars(0, c);
 		#0 rst = 1;
 		#10 rst = 0;
