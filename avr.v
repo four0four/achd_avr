@@ -13,7 +13,7 @@ module avr_cpu (
 
 	// non-register memories
 	// pad with 0s to fit
-	output reg [15:0] p_addr,
+	//output reg [15:0] p_addr,
 	output reg [15:0] d_addr,
 	output reg data_write,
 	
@@ -26,9 +26,9 @@ module avr_cpu (
 
 
 	// debugging
-	output [7:0] Rr_do, 
-	output [7:0] Rd_do,
-	output [7:0] Rd_di
+	output reg [7:0] Rr_do, 
+	output reg [7:0] Rd_do,
+	output reg [7:0] Rd_di
 
 );
 
@@ -58,13 +58,6 @@ module avr_cpu (
 	// immediates
 	wire [7:0] K_8bit  = {instr[11:8], instr[3:0]};
 	wire [11:0] K_12bit = instr[11:0];
-
-	// reg file outputs at current addrs
-	reg [7:0] Rr_do;
-	reg [7:0] Rd_do;
-
-	// dest reg data-in register (to-write)
-	reg [7:0] Rd_di;
 
 	// write pass/inhibit
 	reg reg_write;
@@ -106,33 +99,25 @@ module avr_cpu (
 
 	genvar i;
 	generate
-	for(i=0; i<26; i = i + 1) begin
-	always @(posedge CLK) begin	// reset cond
-		if(RST) begin
-			reg_file[i] <= 8'b0;
+			for(i=0; i<26; i = i + 1) begin : make_quartus_happy
+//			always @(posedge CLK) begin	// reset cond
+			initial begin
+				if(RST) begin
+					reg_file[i] = 8'b0;
+				end
+			end
 		end
-	end
-	end
 	endgenerate
+	 
 
-	always @(posedge CLK) begin	
+	always @ (posedge CLK) begin
+
 		if(RST) begin			// reset cond
 			reg_X <= 16'b0;
 			reg_Y <= 16'b0;
 			reg_Z <= 16'b0;
-			reg_SP <= 16'b0;
-			{I, T, H, S, V, N, Z, C} <= 8'b0;
-			S_reg <= 8'b0;
-			holdstate <= 4'b0;
-			next_holdstate <= 4'b0;
-			stall <= 0;
-			data_write <= 0;
-			pc_restore <= 0;
 		end
-		else S_reg <= {I, T, H, S, V, N, Z, C};
-	end
 
-	always @ (posedge CLK) begin
 		if (reg_write == 1'b1) begin
 			if (Rd_addr < 5'd26) reg_file[Rd_addr] = Rd_di;
 			// handle partial reg_{X,Y,Z} writing
@@ -161,6 +146,7 @@ module avr_cpu (
 				5'd29: Rr_do = reg_Y[15:8];
 				5'd30: Rr_do = reg_Z[7:0];
 				5'd31: Rr_do = reg_Z[15:8];
+				default: Rr_do = 8'bz;
 			endcase
 		end
 		// Rd
@@ -173,11 +159,23 @@ module avr_cpu (
 				5'd29: Rd_do = reg_Y[15:8];
 				5'd30: Rd_do = reg_Z[7:0];
 				5'd31: Rd_do = reg_Z[15:8];
+				default: Rd_do = 8'bz;
 			endcase
 		end
+		// IO memory space
+		case(io_mem_addr) 
+			8'h3F:  io_mem_out = S_reg;
+			8'h3E:  io_mem_out = reg_SP[15:8];
+			8'h3D:  io_mem_out = reg_SP[7:0];
+
+			8'h15:  io_mem_out = gpior[2];
+			8'h14:  io_mem_out = gpior[1];
+			8'h13:  io_mem_out = gpior[0];
+			default:	io_mem_out = 8'bz; // maybe a recognizable pattern
+		endcase
 	end
 
-	// multi-cycle sequential nonsense
+	// multi-cycle sequential & write-back
 	always @ (posedge CLK) begin
 		casex(instr)
 			16'b1001010100001000: begin	// RET
@@ -195,25 +193,60 @@ module avr_cpu (
 				if(holdstate == 4'b0) reg_SP <= reg_SP - 16'h1;
 			end
 		endcase
-		holdstate <= next_holdstate;
+
+
+		if(RST) begin			
+			S_reg <= 8'h0;
+			S_reg <= 8'h0;
+			reg_SP <= 16'h0;
+			pc_restore <= 0;
+			gpior[0] <= 8'h0;
+			gpior[1] <= 8'h0;
+			gpior[2] <= 8'h0;
+			holdstate <= 4'h0;
+		end
+
+		else begin
+			S_reg <= {I, T, H, S, V, N, Z, C};
+			holdstate <= next_holdstate;
+
+			//  IO mem write back
+			if (io_mem_write == 1'b1) begin
+				case(io_mem_addr)
+					8'h3F:  S_reg <= io_mem_in;
+					8'h3E:  reg_SP[15:8] <= io_mem_in;
+					8'h3D:  reg_SP[7:0] <= io_mem_in;
+
+					8'h15:  gpior[2] <= io_mem_in;
+					8'h14:  gpior[1] <= io_mem_in;
+					8'h13:  gpior[0] <= io_mem_in;
+				endcase
+			end
+		end
+
 	end
 
 	// multicycle instruction combinatorial
 	always @ (*) begin
 
-		if(RST) pc_select = 3'b000;
+		if(RST) begin
+			next_holdstate = 4'b0;
+			pc_select = 3'b000;
+			data_write = 1'b0;
+			stall = 0;
+		end
 		else pc_select = 3'b010; // PC = PC + 1
 
 		data_write 	= 1'b0;
 		data_out 		= 8'bz;
+		stall = 1'b0;
+		d_addr = reg_SP;
+		next_holdstate = 4'h0;
+		pc_jmp		 	= {{4{K_12bit[11]}}, K_12bit};
 
 		casex(instr) 
-			16'b1101111010101101: begin // lol
-				stall = 1'b1;
-			end
 			16'b1100xxxxxxxxxxxx: begin	  // RJMP
 				pc_select	 	= 3'b100; 			// PC += K
-				pc_jmp		 	= {{4{K_12bit[11]}}, K_12bit};
 				case(holdstate) 
 					4'h0: begin
 						stall = 1'b1;
@@ -224,11 +257,11 @@ module avr_cpu (
 						next_holdstate = 4'h0;
 						pc_select = 3'b010;
 					end  
+					default: next_holdstate = 4'h0;
 				endcase
 			end // /RJMP
 
 			16'b1101xxxxxxxxxxxx: begin // RCALL
-				pc_jmp		 	= {{4{K_12bit[11]}}, K_12bit};
 				case(holdstate)
 					4'h0: begin
 						next_holdstate = 4'h1;
@@ -256,13 +289,13 @@ module avr_cpu (
 						next_holdstate = 4'h0;
 						pc_select		= 3'b010;				// PC += 1, allow pipeline to catch up
 					end
+					default: next_holdstate = 4'h0;
 				endcase
 			end // /RCALL
 
 			16'b1001010100001000: begin	// RET
 				pc_select		= 3'b010;
 				pc_jmp			= pc_restore;
-				io_mem_write = 1'b0;
 				case(holdstate)
 					4'h0: begin
 						stall = 1'b1;
@@ -288,6 +321,7 @@ module avr_cpu (
 						pc_select = 3'b010;
 						next_holdstate = 4'h0;
 					end
+					default: next_holdstate = 4'h0;
 				endcase
 			end // /RET
 
@@ -300,7 +334,7 @@ module avr_cpu (
 
 						next_holdstate = 4'h1;
 
-						d_addr = reg_SP + 1;
+						d_addr = reg_SP + 16'h1;
 						pc_select = 3'b001;
 					end
 					4'h1: begin
@@ -308,6 +342,7 @@ module avr_cpu (
 						stall = 1'b0;
 						next_holdstate = 4'h0;
 					end
+					default: next_holdstate = 4'h0;
 				endcase
 			end // /POP
 
@@ -333,27 +368,38 @@ module avr_cpu (
 						next_holdstate = 4'h0;
 						data_write = 1'b0;
 					end
+					default: next_holdstate = 4'h0;
 				endcase
 			end // /PUSH
-
+			default: stall = 1'b1; 			// halt immediately on error
 		endcase // casex(instr)
 
 	end // always
 
 	// instruction decoder && ALU - can split this up into something like write/flags/PC src but w/e
 	always @ (*) begin
-		H = S_reg[5];
-		S = S_reg[4];
-		V = S_reg[3];
-		N = S_reg[2];
-		Z = S_reg[1];
-		C = S_reg[0];
+		if(RST) begin
+			{I, T, H, S, V, N, Z, C} = 8'b0;
+			reg_write = 1'b0;
+			Rd_di = 8'bz;
+			io_mem_write = 1'b0;
+		end
 
-		// default to write-out
-		reg_write = 1'b1;
-		Rd_di = 8'bz; // hi-z for now, maybe some pattern later
-		io_mem_write = 1'b0;
-		reg_SP 			= reg_SP;
+		else begin
+			I = S_reg[7];
+			T = S_reg[6];
+			H = S_reg[5];
+			S = S_reg[4];
+			V = S_reg[3];
+			N = S_reg[2];
+			Z = S_reg[1];
+			C = S_reg[0];
+
+			// default to write-out
+			reg_write = 1'b1;
+			Rd_di = 8'bz; // hi-z for now, maybe some pattern later
+			io_mem_write = 1'b0;
+		end
 
 		casex(instr)
 			// chuck things that don't write back here
@@ -364,6 +410,7 @@ module avr_cpu (
 			16'b1100xxxxxxxxxxxx: begin // RJMP
 				reg_write = 1'b0;
 			end
+			default: reg_write = 1'b0;	// do the same for illegal instructions
 			16'b000x11xxxxxxxxxx: begin // ADD, ADC - bit 12 indicates carry
 				Rd_di = Rd_do + Rr_do + ((instr[12] == 1'b1) ? C : 1'b0);
 				H = (Rd_do[3] & Rr_do[3]) | (Rr_do[3] & ~Rd_do[3]) | (~Rd_do[3] & Rd_do[3]);
@@ -410,35 +457,6 @@ module avr_cpu (
 		endcase // casex(instr)
 	end // always
 
-	// IO memory 
-	always @(*) begin 
-		io_mem_out = 8'bz; // maybe a tell-tale pattern?
-		case(io_mem_addr) 
-			8'h3F:  io_mem_out = S_reg;
-			8'h3E:  io_mem_out = reg_SP[15:8];
-			8'h3D:  io_mem_out = reg_SP[7:0];
-
-			8'h15:  io_mem_out = gpior[2];
-			8'h14:  io_mem_out = gpior[1];
-			8'h13:  io_mem_out = gpior[0];
-		endcase
-	end
-
-	always @(posedge CLK) begin
-
-		// write-back
-		if (io_mem_write == 1'b1) begin
-			case(io_mem_addr)
-				8'h3F:  S_reg <= io_mem_in;
-				8'h3E:  reg_SP[15:8] <= io_mem_in;
-				8'h3D:  reg_SP[7:0] <= io_mem_in;
-
-				8'h15:  gpior[2] <= io_mem_in;
-				8'h14:  gpior[1] <= io_mem_in;
-				8'h13:  gpior[0] <= io_mem_in;
-			endcase
-		end
-	end
 
 endmodule
 
