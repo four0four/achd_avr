@@ -4,6 +4,10 @@ module avr_cpu (
 	// currently held instruction
 	// feeds combinational shit
 	input wire [15:0] instr,
+	// so close to not needing this
+	// mostly exists just so we can push/pop into it
+	input wire [15:0] cur_pc,
+
 	inout wire [7:0]  data,
 
 
@@ -55,7 +59,6 @@ module avr_cpu (
 	wire [7:0] K_8bit  = {instr[11:8], instr[3:0]};
 	wire [11:0] K_12bit = instr[11:0];
 
-
 	// reg file outputs at current addrs
 	reg [7:0] Rr_do;
 	reg [7:0] Rd_do;
@@ -75,6 +78,9 @@ module avr_cpu (
 
 	// multicycle state machine
 	reg [3:0] holdstate, next_holdstate;
+
+	// ret PC restore
+	reg [15:0] pc_restore;
 
 	// data memory control
 	reg [7:0] data_out;
@@ -121,6 +127,7 @@ module avr_cpu (
 			next_holdstate <= 4'b0;
 			stall <= 0;
 			data_write <= 0;
+			pc_restore <= 0;
 		end
 		else S_reg <= {I, T, H, S, V, N, Z, C};
 	end
@@ -131,20 +138,16 @@ module avr_cpu (
 			// handle partial reg_{X,Y,Z} writing
 			else begin
 				case(Rd_addr)
-					5'd26: reg_X[7:0]  = Rd_di;
-					5'd27: reg_X[15:8] = Rd_di;
-					5'd28: reg_Y[7:0]  = Rd_di;
-					5'd29: reg_Y[15:8] = Rd_di;
-					5'd30: reg_Z[7:0]  = Rd_di;
-					5'd31: reg_Z[15:8] = Rd_di;
+					5'd26: reg_X[7:0]  <= Rd_di;
+					5'd27: reg_X[15:8] <= Rd_di;
+					5'd28: reg_Y[7:0]  <= Rd_di;
+					5'd29: reg_Y[15:8] <= Rd_di;
+					5'd30: reg_Z[7:0]  <= Rd_di;
+					5'd31: reg_Z[15:8] <= Rd_di;
 				endcase
 			end
 		end
-	end       
-
-	always @ (posedge CLK) begin // multi-cycle nonsense
-		holdstate <= next_holdstate;
-	end  
+	end
 
 	always @(*) begin
 		// handle partial reg_{X,Y,Z} loading
@@ -171,16 +174,38 @@ module avr_cpu (
 				5'd30: Rd_do = reg_Z[7:0];
 				5'd31: Rd_do = reg_Z[15:8];
 			endcase
-		end 
+		end
 	end
 
-	// multicycle instruction handling
+	// multi-cycle sequential nonsense
+	always @ (posedge CLK) begin
+		casex(instr)
+			16'b1001010100001000: begin	// RET
+				if(holdstate == 3'h1) pc_restore[7:0] <= data;
+				if(holdstate == 3'h2) pc_restore[15:8] <= data;
+				if(holdstate == 4'h3) reg_SP <= reg_SP + 16'h2;
+			end
+			16'b1101xxxxxxxxxxxx: begin // RCALL
+				if(holdstate == 4'h2) reg_SP <= reg_SP - 16'h2;
+			end
+			16'b1001000xxxxx1111: begin // POP
+				if(holdstate == 4'b0) reg_SP <= reg_SP + 16'h1;
+			end
+			16'b1001001xxxxx1111: begin // PUSH
+				if(holdstate == 4'b0) reg_SP <= reg_SP - 16'h1;
+			end
+		endcase
+		holdstate <= next_holdstate;
+	end
+
+	// multicycle instruction combinatorial
 	always @ (*) begin
 
 		if(RST) pc_select = 3'b000;
 		else pc_select = 3'b010; // PC = PC + 1
 
-		data_write = 1'b0;
+		data_write 	= 1'b0;
+		data_out 		= 8'bz;
 
 		casex(instr) 
 			16'b1101111010101101: begin // lol
@@ -201,35 +226,96 @@ module avr_cpu (
 					end  
 				endcase
 			end // /RJMP
+
+			16'b1101xxxxxxxxxxxx: begin // RCALL
+				pc_jmp		 	= {{4{K_12bit[11]}}, K_12bit};
+				case(holdstate)
+					4'h0: begin
+						next_holdstate = 4'h1;
+
+						// stash pc[15:8]
+						stall 			= 1'b1;
+						d_addr			= reg_SP;
+						data_out 		= cur_pc[15:8];
+						data_write	= 1'b1;
+						pc_select 	= 3'b001;				// Hold PC
+					end
+					4'h1: begin
+						next_holdstate = 4'h2;
+
+						// stash pc[7:0]
+						stall 			= 1'b1;
+						d_addr			= reg_SP - 16'b1;
+						data_out 		= cur_pc[7:0];
+						data_write	= 1'b1;
+						pc_select		= 3'b100;				// PC += K
+					end
+					4'h2: begin
+						stall = 1'b0;
+						data_write	= 1'b0;
+						next_holdstate = 4'h0;
+						pc_select		= 3'b010;				// PC += 1, allow pipeline to catch up
+					end
+				endcase
+			end // /RCALL
+
+			16'b1001010100001000: begin	// RET
+				pc_select		= 3'b010;
+				pc_jmp			= pc_restore;
+				io_mem_write = 1'b0;
+				case(holdstate)
+					4'h0: begin
+						stall = 1'b1;
+						next_holdstate = 4'h1;
+						d_addr = reg_SP + 16'h1;
+					end
+					4'h1: begin
+						stall = 1'b1;
+						next_holdstate = 4'h2;
+						d_addr = reg_SP + 16'h2;
+					end
+					4'h2: begin
+						stall = 1'b1;
+						next_holdstate = 4'h3;
+						pc_select = 3'b101;
+					end
+					4'h3: begin
+						stall = 1'b0;
+						pc_select = 3'b010;
+						next_holdstate = 4'h0;
+					end
+				endcase
+			end // /RET
+
 			16'b1001000xxxxx1111: begin // POP
-				reg_SP = reg_SP;
 				case(holdstate)
 					// may be worth latching something here?
 					// I don't think it matters right now with a pipeline this simple
 					4'h0: begin
 						stall = 1'b1;
-						pc_select = 3'b001;
 
 						next_holdstate = 4'h1;
 
 						d_addr = reg_SP + 1;
+						pc_select = 3'b001;
 					end
 					4'h1: begin
+						pc_select = 3'b010;
 						stall = 1'b0;
-						reg_SP = reg_SP + 1;
 						next_holdstate = 4'h0;
 					end
 				endcase
 			end // /POP
+
 			16'b1001001xxxxx1111: begin // PUSH
 				case(holdstate)
 					4'h0: begin
 						// stall 1 cycle for memory
 						// here we do NOT flush
 						stall = 1'b1;
-						pc_select = 3'b001;
 
 						next_holdstate = 4'h1;
+						pc_select = 3'b001;
 
 						// set up data memory things
 						d_addr = reg_SP;
@@ -237,14 +323,15 @@ module avr_cpu (
 						data_out = Rd_do;
 					end
 					4'h1: begin
+						pc_select = 3'b010;
 						// done, clean up
 						stall = 1'b0;
-						reg_SP = reg_SP - 16'h0001;
 						next_holdstate = 4'h0;
 						data_write = 1'b0;
 					end
 				endcase
 			end // /PUSH
+
 		endcase // casex(instr)
 
 	end // always
@@ -260,13 +347,16 @@ module avr_cpu (
 
 		// default to write-out
 		reg_write = 1'b1;
-		Rd_di = 7'bz; // hi-z for now, maybe some pattern later
+		Rd_di = 8'bz; // hi-z for now, maybe some pattern later
 		io_mem_write = 1'b0;
+		reg_SP 			= reg_SP;
 
 		casex(instr)
 			// chuck things that don't write back here
 			16'b0000000000000000,       // NOP
 			16'b1001001xxxxx1111,       // PUSH
+			16'b1101xxxxxxxxxxxx,				// RCALL
+			16'b1001010100001000,				// RET
 			16'b1100xxxxxxxxxxxx: begin // RJMP
 				reg_write = 1'b0;
 			end
@@ -356,6 +446,7 @@ module avr_fetch(
 
 	output reg [15:0] cur_instr,
 	output wire [15:0] prog_addr,
+	output wire [15:0] current_pc,
 
 	input wire [15:0] jmp,
 	input wire [15:0] prog_data,
@@ -369,6 +460,8 @@ module avr_fetch(
 	reg [15:0] instr_last;
 
 	assign prog_addr = PC_next;
+
+	assign current_pc = PC_reg;
 
 	always @ (posedge CLK) begin
 		// reset logic

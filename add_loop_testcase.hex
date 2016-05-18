@@ -1,0 +1,16 @@
+0000      		// nop
+CFEF      		// ldi r28, 0xFF
+D1E0      		// ldi r29, 0x01
+DEBF      		// out 0x3e, r29
+CDBF      		// out 0x3d, r28
+A0E1      		// ldi r26, 0x10
+C0E0					// ldi r28, 0
+CFBF					// out SREG, r28
+//         	loop:
+01D0      		// rcall addone
+fecf      		// rjmp loop
+         	
+//         	addone:
+0000
+CA1F      		//adc r28, r26
+0895      		//ret
