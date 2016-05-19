@@ -48,38 +48,38 @@ module avr_cpu (
 	// indirect program flow control (IJMP etc, not implemented)
 
 	// slicing up instruction fields:
-	wire immediate = instr[14];
+	wire 				immediate = instr[14];
 
 	// reg addrs
-	wire [4:0] Rr_addr = {instr[9],instr[3:0]};
+	wire [4:0] 	Rr_addr = {instr[9],instr[3:0]};
 	// if we're using immediate addressing, can only access upper 16 regs
-	wire [4:0] Rd_addr = (immediate == 1'b1) ? {1'b1, instr[7:4]} : instr[8:4];
-	reg [5:0] io_mem_addr; //= {instr[10:9], instr[3:0]};
+	wire [4:0] 	Rd_addr = (immediate == 1'b1) ? {1'b1, instr[7:4]} : instr[8:4];
+	reg [5:0] 	io_mem_addr; //= {instr[10:9], instr[3:0]};
 
 	// immediates
-	wire [7:0] K_8bit  = {instr[11:8], instr[3:0]};
+	wire [7:0] 	K_8bit  = {instr[11:8], instr[3:0]};
 	wire [11:0] K_12bit = instr[11:0];
 
-	// bit addresses
-	wire [2:0] bit_b = instr[2:0];
-
-	// IO mem address
+  // branch conditions and offsets
+  wire [6:0] K_branch = instr[9:3];
+	wire [2:0] branch_cond = instr[2:0];
+	wire			 branch_negate = instr[11];
 
 	// write pass/inhibit
 	reg reg_write;
 
 	// register file
-	reg [7:0] reg_file [0:25];
-	reg [15:0] reg_X;
-	reg [15:0] reg_Y;
-	reg [15:0] reg_Z;
-	reg [15:0] reg_SP; // we want this?
+	reg [7:0] 	reg_file [0:25];
+	reg [15:0] 	reg_X;
+	reg [15:0] 	reg_Y;
+	reg [15:0] 	reg_Z;
+	reg [15:0] 	reg_SP; // we want this?
 
 	// multicycle state machine
-	reg [3:0] holdstate, next_holdstate;
+	reg [3:0] 	holdstate, next_holdstate;
 
 	// ret PC restore
-	reg [15:0] pc_restore;
+	reg [15:0] 	pc_restore;
 
 	// data memory control
 	//reg [7:0] data_out;
@@ -87,10 +87,10 @@ module avr_cpu (
 
 
 	// IO mem control
-	reg [7:0] io_mem_out;
-	wire [7:0] io_mem_in = Rd_do;
-	reg io_mem_write;
-	reg [7:0] gpior [2:0];
+	reg [7:0] 	io_mem_out;
+	wire [7:0] 	io_mem_in = Rd_do;
+	reg 				io_mem_write;
+	reg [7:0] 	gpior [2:0];
 
 
 	// SREG - half of these probably won't be needed
