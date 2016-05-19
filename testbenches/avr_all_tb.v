@@ -13,7 +13,8 @@ module cpu_tb;
 	wire [15:0] progdata;
 	wire [15:0] pc;
 
-	wire [7:0] data;
+	wire [7:0] data_out;
+	wire [7:0] data_in;
 	wire [15:0] dataaddr;
 	wire dwrite;
 
@@ -42,7 +43,8 @@ module cpu_tb;
 //			.p_addr(),
 			.d_addr(dataaddr),
 			.data_write(dwrite),
-			.data(data),
+			.data_in(data_out),
+			.data_out(data_in),
 			.S_reg(S),
 			.pc_select(pcsrc),
 			.pc_jmp(jmp_k),
@@ -77,7 +79,8 @@ module cpu_tb;
 		.RST(rst),
 		.addr(dataaddr[10:0]),
 		.write_en(dwrite),
-		.data(data)
+		.do(data_out),
+		.di(data_in)
 	);
 
 endmodule
@@ -93,13 +96,14 @@ module program_memory(
 	reg [15:0] rom [511:0];
 
 	initial begin
-		$readmemh("testcases/add_loop_testcase.hex", rom, 0, 511);
+		$readmemh("testcases/loop_test.hex", rom, 0, 511);
 		data = 16'd0;
 	end
 
 	always @ (posedge CLK) begin
 		if(enable) begin
-			data <= {rom[addr][7:0], rom[addr][15:8]};
+			//data <= {rom[addr][7:0], rom[addr][15:8]};
+			data <= rom[addr];
 		end
 		else begin
 			data <= 16'bz;
@@ -118,12 +122,14 @@ module data_memory(
 	input wire write_en,
 	input wire CLK,
 	input wire RST,
-	inout wire [7:0] data);
+	output wire [7:0] do,
+	input wire [7:0] di);
 
 	reg [7:0] ram [2047:0];
 	reg [7:0] data_r; 
 
-	assign data = write_en ? 8'bz : data_r;
+//	assign data = write_en ? 8'bz : data_r;
+	assign do = data_r;
 
 	integer i;
 	initial begin
@@ -135,7 +141,7 @@ module data_memory(
 	always @ (posedge CLK) begin
 		data_r <= ram[addr];
 		if(write_en) begin
-			ram[addr] <= data;
+			ram[addr] <= di;
 		end
 
 		if(RST) begin

@@ -8,7 +8,8 @@ module avr_cpu (
 	// mostly exists just so we can push/pop into it
 	input wire [15:0] cur_pc,
 
-	inout wire [7:0]  data,
+	input wire [7:0]  data_in,
+	output reg [7:0] data_out,
 
 
 	// non-register memories
@@ -81,8 +82,9 @@ module avr_cpu (
 	reg [15:0] pc_restore;
 
 	// data memory control
-	reg [7:0] data_out;
-	assign data = (data_write == 1'b1) ? data_out : 8'bz;
+	//reg [7:0] data_out;
+	//assign data = (data_write == 1'b1) ? data_out : 8'bz;
+
 
 	// IO mem control
 	reg [7:0] io_mem_out;
@@ -105,7 +107,6 @@ module avr_cpu (
 	genvar i;
 	generate
 			for(i=0; i<26; i = i + 1) begin : make_quartus_happy
-//			always @(posedge CLK) begin	// reset cond
 			initial begin
 				if(RST) begin
 					reg_file[i] = 8'b0;
@@ -114,7 +115,6 @@ module avr_cpu (
 		end
 	endgenerate
 	 
-
 	always @ (posedge CLK) begin
 
 		if(RST) begin			// reset cond
@@ -184,8 +184,8 @@ module avr_cpu (
 	always @ (posedge CLK) begin
 		casex(instr)
 			16'b1001010100001000: begin	// RET
-				if(holdstate == 3'h1) pc_restore[7:0] <= data;
-				if(holdstate == 3'h2) pc_restore[15:8] <= data;
+				if(holdstate == 3'h1) pc_restore[7:0] <= data_in;
+				if(holdstate == 3'h2) pc_restore[15:8] <= data_in;
 				if(holdstate == 4'h3) reg_SP <= reg_SP + 16'h2;
 			end
 			16'b1101xxxxxxxxxxxx: begin // RCALL
@@ -459,7 +459,7 @@ module avr_cpu (
 				Rd_di = K_8bit;
 			end
 			16'b1001000xxxxx1111: begin // POP
-				Rd_di = data;
+				Rd_di = data_in;
 			end
 		endcase // casex(instr)
 	end // always
@@ -496,14 +496,15 @@ module avr_fetch(
 		// reset logic
 		if(RST) begin
 			PC_reg <= 16'b0;
-			PC_next <= 16'b0;
 			cur_instr <= 16'b0; // NOP
 		end
 
 		else begin
 			PC_reg <= PC_next;
 			if (!stall) begin
-				cur_instr <= prog_data;
+//				cur_instr <= prog_data;
+				cur_instr[7:0] <= prog_data[15:8];
+				cur_instr[15:8] <= prog_data[7:0];
 			end
 		end
 
@@ -511,17 +512,20 @@ module avr_fetch(
 
 	// maybe move this, maybe remove it
 	always @ (*) begin
-		case(pc_src)
-			3'b000: PC_next = 16'b0;		// reset cond
-			3'b001: PC_next = PC_reg;		// hold/multi-cycle
-			3'b010: PC_next = PC_reg + 1;	// normal
-			3'b011: PC_next = PC_reg + 2;	// 32 bit instruction
-			3'b100: PC_next = PC_reg + jmp;	// rel jump
-			3'b101: PC_next = jmp;			// absolute jump
-			// bug:
-			3'b110: PC_next = 16'hFFFF;
-			3'b111: PC_next = 16'hFFFF;
-		endcase
+		if(RST) PC_next = 16'h0;
+		else begin
+			case(pc_src)
+				3'b000: PC_next = 16'b0;		// reset cond
+				3'b001: PC_next = PC_reg;		// hold/multi-cycle
+				3'b010: PC_next = PC_reg + 1;	// normal
+				3'b011: PC_next = PC_reg + 2;	// 32 bit instruction
+				3'b100: PC_next = PC_reg + jmp;	// rel jump
+				3'b101: PC_next = jmp;			// absolute jump
+				// bug:
+				3'b110: PC_next = 16'hFFFF;
+				3'b111: PC_next = 16'hFFFF;
+			endcase
+		end
 	end
 
 endmodule
