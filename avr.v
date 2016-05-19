@@ -469,7 +469,6 @@ module avr_cpu (
 				S = N ^ V;
 				Z = (Rd_di == 8'b0);
 				C = (~Rd_do[7] & Rr_do[7]) | (Rr_do[7] & Rd_di[7]) | (Rd_di[7] & ~Rd_do[7]);
-
 			end
 			16'b000010xxxxxxxxxx: begin // SBC
 				Rd_di = Rd_do - Rr_do - ((instr[12] == 1'b1) ? C : 1'b0);
@@ -490,7 +489,18 @@ module avr_cpu (
 				C = (~Rd_do[7] & K_8bit[7]) | (K_8bit[7] & Rd_di[7]) | (Rd_di[7] & ~Rd_do[7]);
 			end
 			16'b001010xxxxxxxxxx: begin // OR
-				Rd_di = Rd_di[7:0] | Rr_do;			
+				Rd_di = Rd_do | Rr_do;
+				N = Rd_di[7];
+				V = 1'b0;
+				S = V ^ N;
+				Z = (Rd_di == 8'b0);	
+			end
+			16'b0110xxxxxxxxxxxx: begin // ORI
+				Rd_di = Rd_di | K_8bit;
+				N = Rd_di[7];
+				V = 1'b0;
+				S = V ^ N;
+				Z = (Rd_di == 8'b0);	
 			end
 			16'b001000xxxxxxxxxx: begin // AND
 				Rd_di = Rd_do & Rr_do;
@@ -506,8 +516,6 @@ module avr_cpu (
 				N = Rd_di[7];
 				S = V ^ N;
 			end
-			
-
 		endcase // casex(instr)
 	end // always
 
