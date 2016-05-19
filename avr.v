@@ -53,11 +53,16 @@ module avr_cpu (
 	wire [4:0] Rr_addr = {instr[9],instr[3:0]};
 	// if we're using immediate addressing, can only access upper 16 regs
 	wire [4:0] Rd_addr = (immediate == 1'b1) ? {1'b1, instr[7:4]} : instr[8:4];
-	wire [5:0] io_mem_addr = {instr[10:9], instr[3:0]};
+	reg [5:0] io_mem_addr; //= {instr[10:9], instr[3:0]};
 
 	// immediates
 	wire [7:0] K_8bit  = {instr[11:8], instr[3:0]};
 	wire [11:0] K_12bit = instr[11:0];
+
+	// bit addresses
+	wire [2:0] bit_b = instr[2:0];
+
+	// IO mem address
 
 	// write pass/inhibit
 	reg reg_write;
@@ -239,10 +244,12 @@ module avr_cpu (
 
 		data_write 	= 1'b0;
 		data_out 		= 8'bz;
-		stall = 1'b0;
+		stall = 0;
 		d_addr = reg_SP;
 		next_holdstate = 4'h0;
 		pc_jmp		 	= {{4{K_12bit[11]}}, K_12bit};
+		// default to OUT/IN formatting
+		io_mem_addr = {instr[10:9], instr[3:0]};
 
 		casex(instr) 
 			16'b1100xxxxxxxxxxxx: begin	  // RJMP
@@ -371,7 +378,7 @@ module avr_cpu (
 					default: next_holdstate = 4'h0;
 				endcase
 			end // /PUSH
-			default: stall = 1'b1; 			// halt immediately on error
+			default: stall = 1'b0; 			//	should add an illegal instruction thing
 		endcase // casex(instr)
 
 	end // always
