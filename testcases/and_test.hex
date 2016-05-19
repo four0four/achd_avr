@@ -1,0 +1,11 @@
+0000		// nop
+AFEF      	// ldi r26,2
+C0E5      	// ldi r28,3
+AC23      	// and r26,r28
+0000		// nop
+A9E0      	// ldi r26,9
+C6E0      	// ldi r28,6
+AC2B		// or r26,r28
+0000		// nop
+A06F		// ori r26,0xF0 ; Set high nibble of r26
+B160		// ori r27,1 	; Set bit 0 of r17
