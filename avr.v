@@ -461,6 +461,61 @@ module avr_cpu (
 			16'b1001000xxxxx1111: begin // POP
 				Rd_di = data_in;
 			end
+			16'b1001000xxxxx1111: begin // CP
+				// ? What do you put down for this operation				
+				H = (~Rd_do[3] & Rr_do[3]) | (Rr_do[3] & Rd_di[3]) | (Rd_di[3] & ~Rd_do[3]);
+				V = (Rd_do[7] & ~Rr_do[7] & ~Rd_di[7] & Rd_do[7]& Rr_do[7] & Rd_di[7]);
+				N = Rd_di[7];
+				S = N ^ V;
+				Z = (Rd_di == 8'b0);
+				C = (~Rd_do[7] & Rr_do[7]) | (Rr_do[7] & Rd_di[7]) | (Rd_di[7] & ~Rd_do[7]);
+			end
+			16'b000010xxxxxxxxxx: begin // SBC
+				Rd_di = Rd_do - Rr_do - ((instr[12] == 1'b1) ? C : 1'b0);
+				H = (Rd_do[3] & Rr_do[3]) | (Rr_do[3] & Rd_di[3]) | (Rd_di[3] & ~Rd_do[3]);
+				V = (Rd_do[7] & ~Rr_do[7] & Rd_di[7]) | (~Rd_do[7] & Rr_do[7] & Rd_di[7]);
+				N = Rd_di[7];
+				S = V ^ N;
+				Z = (Rd_di == 8'b0);
+				C = (Rd_do[7] & Rr_do[7]) | (Rr_do[7] & ~Rd_di[7]) | (~Rd_di[7] & Rd_do[7]);
+			end
+			16'b0100xxxxxxxxxxxx: begin // SBCI
+				Rd_di = Rd_do - K_8bit - ((instr[12] == 1'b1) ? C : 1'b0);
+				H = (~Rd_do[3] & K_8bit[3]) | (Rd_di[3] & K_8bit[3]) | (Rd_di[3] & ~Rd_do[3]);
+				V = (Rd_do[7] & ~K_8bit[7] & ~Rd_di[7]) | (~Rd_do[7] & K_8bit[7] & Rd_di[7]);
+				N = Rd_di[7];
+				S = V ^ N;
+				Z = (Rd_di == 8'b0); // Check if this is being set right
+				C = (~Rd_do[7] & K_8bit[7]) | (K_8bit[7] & Rd_di[7]) | (Rd_di[7] & ~Rd_do[7]);
+			end
+			16'b001010xxxxxxxxxx: begin // OR
+				Rd_di = Rd_do | Rr_do;
+				N = Rd_di[7];
+				V = 1'b0;
+				S = V ^ N;
+				Z = (Rd_di == 8'b0);	
+			end
+			16'b0110xxxxxxxxxxxx: begin // ORI
+				Rd_di = Rd_di | K_8bit;
+				N = Rd_di[7];
+				V = 1'b0;
+				S = V ^ N;
+				Z = (Rd_di == 8'b0);	
+			end
+			16'b001000xxxxxxxxxx: begin // AND
+				Rd_di = Rd_do & Rr_do;
+				Z = (Rd_di == 8'b0);
+				V = 1'b0;
+				N = Rd_di[7];
+				S = V ^ N;
+			end
+			16'b0111xxxxxxxxxxxx: begin // ANDI
+				Rd_di = Rd_do & K_8bit;
+				Z = (Rd_di == 8'b0);
+				V = 1'b0;
+				N = Rd_di[7];
+				S = V ^ N;
+			end
 		endcase // casex(instr)
 	end // always
 

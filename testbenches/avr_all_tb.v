@@ -30,7 +30,7 @@ module cpu_tb;
 		$dumpvars(0, f);
 		#0 rst = 1;
 		#10 rst = 0;
-		#8000 $finish;
+		#200 $finish;
 	end
 
 	always #5 clk = !clk;
@@ -96,7 +96,9 @@ module program_memory(
 	reg [15:0] rom [511:0];
 
 	initial begin
-		$readmemh("testcases/loop_test.hex", rom, 0, 511);
+
+		$readmemh("testcases/and_test.hex", rom, 0, 511);
+
 		data = 16'd0;
 	end
 
