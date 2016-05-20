@@ -39,8 +39,8 @@ module avr_cpu (
 	wire [7:0] 	K_8bit  = {instr[11:8], instr[3:0]};
 	wire [11:0] K_12bit = instr[11:0];
 
-  // branch conditions and offsets
-  wire [6:0] 	K_branch = instr[9:3];
+	// branch conditions and offsets
+	wire [6:0] 	K_branch = instr[9:3];
 	wire [2:0] 	branch_cond = instr[2:0];
 	wire			 	branch_negate = instr[10];
 
