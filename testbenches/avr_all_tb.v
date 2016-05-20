@@ -30,28 +30,27 @@ module cpu_tb;
 		$dumpvars(0, f);
 		#0 rst = 1;
 		#10 rst = 0;
-		#200 $finish;
+		#800 $finish;
 	end
 
 	always #5 clk = !clk;
 
 	avr_cpu c(
-			.CLK(clk),
-			.RST(rst),
-			.stall(cpu_stall),
-			.instr(inst),
-//			.p_addr(),
-			.d_addr(dataaddr),
-			.data_write(dwrite),
-			.data_in(data_out),
-			.data_out(data_in),
-			.S_reg(S),
-			.pc_select(pcsrc),
-			.pc_jmp(jmp_k),
-			.cur_pc(pc),
-			.Rr_do(rrdo),
-			.Rd_do(rddo),
-			.Rd_di(rddi)
+		.CLK(clk),
+		.RST(rst),
+		.stall(cpu_stall),
+		.instr(inst),
+		.d_addr(dataaddr),
+		.data_write(dwrite),
+		.data_in(data_out),
+		.data_out(data_in),
+		.S_reg(S),
+		.pc_select(pcsrc),
+		.pc_jmp(jmp_k),
+		.cur_pc(pc),
+		.Rr_do(rrdo),
+		.Rd_do(rddo),
+		.Rd_di(rddi)
 	);
 
 	avr_fetch f(
@@ -97,14 +96,13 @@ module program_memory(
 
 	initial begin
 
-		$readmemh("testcases/and_test.hex", rom, 0, 511);
+		$readmemh("testcases/branchtest.hex", rom, 0, 511);
 
 		data = 16'd0;
 	end
 
 	always @ (posedge CLK) begin
 		if(enable) begin
-			//data <= {rom[addr][7:0], rom[addr][15:8]};
 			data <= rom[addr];
 		end
 		else begin
@@ -130,7 +128,6 @@ module data_memory(
 	reg [7:0] ram [2047:0];
 	reg [7:0] data_r; 
 
-//	assign data = write_en ? 8'bz : data_r;
 	assign do = data_r;
 
 	integer i;
