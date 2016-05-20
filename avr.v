@@ -91,30 +91,6 @@ module avr_cpu (
 			end
 		end
 	endgenerate
-	 
-	always @ (posedge CLK) begin
-
-		if(RST) begin			// reset cond
-			reg_X <= 16'b0;
-			reg_Y <= 16'b0;
-			reg_Z <= 16'b0;
-		end
-
-		if (reg_write == 1'b1) begin
-			if (Rd_addr < 5'd26) reg_file[Rd_addr] = Rd_di;
-			// handle partial reg_{X,Y,Z} writing
-			else begin
-				case(Rd_addr)
-					5'd26: reg_X[7:0]  <= Rd_di;
-					5'd27: reg_X[15:8] <= Rd_di;
-					5'd28: reg_Y[7:0]  <= Rd_di;
-					5'd29: reg_Y[15:8] <= Rd_di;
-					5'd30: reg_Z[7:0]  <= Rd_di;
-					5'd31: reg_Z[15:8] <= Rd_di;
-				endcase
-			end
-		end
-	end
 
 	always @(*) begin
 		Rd_do = 8'bz; // hi-z for now, maybe some pattern later
@@ -181,6 +157,9 @@ module avr_cpu (
 		if(RST) begin			
 			S_reg <= 8'h0;
 			S_reg <= 8'h0;
+			reg_X <= 16'b0;
+			reg_Y <= 16'b0;
+			reg_Z <= 16'b0;
 			reg_SP <= 16'h0;
 			pc_restore <= 0;
 			gpior[0] <= 8'h0;
@@ -188,7 +167,6 @@ module avr_cpu (
 			gpior[2] <= 8'h0;
 			holdstate <= 4'h0;
 		end
-
 		else begin
 			S_reg <= {I, T, H, S, V, N, Z, C};
 			holdstate <= next_holdstate;
@@ -204,9 +182,23 @@ module avr_cpu (
 					8'h14:  gpior[1] <= io_mem_in;
 					8'h13:  gpior[0] <= io_mem_in;
 				endcase
-			end
-		end
-
+			end	// io_mem_write writeback
+  
+			if (reg_write == 1'b1) begin
+				if (Rd_addr < 5'd26) reg_file[Rd_addr] = Rd_di;
+				// handle partial reg_{X,Y,Z} writing
+				else begin
+					case(Rd_addr)
+						5'd26: reg_X[7:0]  <= Rd_di;
+						5'd27: reg_X[15:8] <= Rd_di;
+						5'd28: reg_Y[7:0]  <= Rd_di;
+						5'd29: reg_Y[15:8] <= Rd_di;
+						5'd30: reg_Z[7:0]  <= Rd_di;
+						5'd31: reg_Z[15:8] <= Rd_di;
+					endcase
+				end
+			end	// reg_write writeback
+		end	// not in reset 
 	end
 
 	// multicycle instruction combinatorial
@@ -251,10 +243,10 @@ module avr_cpu (
 				endcase
 			end
 			16'b1100xxxxxxxxxxxx: begin	  // RJMP
-				pc_select	 	= 3'b100; 			// PC += K
 				case(holdstate) 
 					4'h0: begin
 						stall = 1'b1;
+						pc_select	 	= 3'b100; 			// PC += K
 						next_holdstate = 4'h1;
 					end
 					4'h1: begin
@@ -299,11 +291,11 @@ module avr_cpu (
 			end // /RCALL
 
 			16'b1001010100001000: begin	// RET
-				pc_select		= 3'b010;
 				pc_jmp			= pc_restore;
 				case(holdstate)
 					4'h0: begin
 						stall 	= 1'b1;
+						pc_select		= 3'b010;
 						next_holdstate = 4'h1;
 						d_addr 	= reg_SP + 16'h1;
 					end
@@ -329,8 +321,6 @@ module avr_cpu (
 
 			16'b1001000xxxxx1111: begin // POP
 				case(holdstate)
-					// may be worth latching something here?
-					// I don't think it matters right now with a pipeline this simple
 					4'h0: begin
 						stall = 1'b1;
 						pc_select = 3'b001;
@@ -464,6 +454,17 @@ module avr_cpu (
 				Z = (Rd_di == 8'b0);
 				C = (~Rd_do[7] & Rr_do[7]) | (Rr_do[7] & Rd_di[7]) | (Rd_di[7] & ~Rd_do[7]);
 			end
+			16'b0011xxxxxxxxxxxx: begin // CPI
+				// don't actually write out
+				reg_write = 1'b0;
+				Rd_di = Rd_do - K_8bit;
+				H = (~Rd_do[3] & K_8bit[3]) | (Rd_di[3] & K_8bit[3]) | (Rd_di[3] & ~Rd_do[3]);
+				V = (Rd_do[7] & ~K_8bit[7] & ~Rd_di[7]) | (~Rd_do[7] & K_8bit[7] & Rd_di[7]);
+				N = Rd_di[7];
+				S = N ^ V;
+				Z = (Rd_di == 8'b0);
+				C = (~Rd_di[7] & K_8bit[7]) | (K_8bit[7] & Rd_di[7]) | (Rd_di[7] & ~Rd_do[7]);
+			end
 			16'b000010xxxxxxxxxx: begin // SBC
 				Rd_di = Rd_do - Rr_do - ((instr[12] == 1'b1) ? C : 1'b0);
 				H = (Rd_do[3] & Rr_do[3]) | (Rr_do[3] & Rd_di[3]) | (Rd_di[3] & ~Rd_do[3]);
@@ -546,8 +547,6 @@ module avr_fetch(
 
 	reg [15:0] PC_reg;
 	reg [15:0] PC_next;
-
-	reg [15:0] instr_last;
 
 	assign prog_addr = PC_next;
 
