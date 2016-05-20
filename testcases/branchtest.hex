@@ -1,12 +1,12 @@
-0000
-a0e1
-b0e0
-//b0e1
-ab17
-19f0
-19f4
-0000
-0000
-FECA
-BEBA
-DEC0
+0000		// nop
+a0e1		// ldi r26, 0x10
+b0e0	// ldi r27, 0x00
+b0e1		// ldi r27, 0x10
+ab17		// cp r26, r27
+19f0		// breq +0x8 (cafe)
+19f4		// brne +0x8 (babe)
+0000		// nop
+0000		// nop	
+feca		// cafe
+beba		// babe
+dec0		// c0de
