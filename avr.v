@@ -510,7 +510,7 @@ module avr_cpu (
 				N = Rd_di[7];
 				S = V ^ N;
 			end
-			16'b1111xxxxxxxxxxxx: begin	// BR*
+			16'b11110xxxxxxxxxxx: begin	// BR*
 				case(branch_cond)
 					3'b000: branch_result = (C == 1'b1);
 					3'b001: branch_result = (Z == 1'b1);
