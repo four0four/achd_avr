@@ -170,8 +170,8 @@ module avr_cpu (
 				end
 			end
 			16'b1001010100001000: begin	// RET
-				if(holdstate == 3'h1) pc_restore[7:0] <= data_in;
-				if(holdstate == 3'h2) pc_restore[15:8] <= data_in;
+				if(holdstate == 3'h0) pc_restore[7:0] <= data_in;
+				if(holdstate == 3'h1) pc_restore[15:8] <= data_in;
 				if(holdstate == 4'h3) reg_SP <= reg_SP + 16'h2;
 			end
 			16'b1101xxxxxxxxxxxx: begin // RCALL
@@ -216,7 +216,7 @@ module avr_cpu (
 			end	// io_mem_write writeback
   
 			if (reg_write == 1'b1) begin
-				if (Rd_addr < 5'd26) reg_file[Rd_addr] = Rd_di;
+				if (Rd_addr < 5'd26) reg_file[Rd_addr] <= Rd_di;
 				// handle partial reg_{X,Y,Z} writing
 				else begin
 					case(Rd_addr)
@@ -246,7 +246,7 @@ module avr_cpu (
 		data_write 			= 1'b0;
 		data_out 				= 8'bz;
 		stall 					= 0;
-		d_addr 					= reg_SP;
+		d_addr 					= reg_SP + 1'h1; // save a cycle on ret
 		next_holdstate 	= 4'h0;
 		pc_jmp		 			= {{4{K_12bit[11]}}, K_12bit};
 		io_mem_addr 		= {instr[10:9], instr[3:0]};
@@ -359,7 +359,7 @@ module avr_cpu (
 						stall 					= 1'b0;
 						data_write			= 1'b0;
 						next_holdstate 	= 4'h0;
-						pc_select				= 3'b010;				// PC += 1, allow pipeline to catch up
+						data_write	= 1'b0;
 					end
 					default: next_holdstate = 4'h0;
 				endcase
@@ -372,13 +372,13 @@ module avr_cpu (
 						stall 	= 1'b1;
 						pc_select		= 3'b010;
 						next_holdstate = 4'h1;
-						d_addr 	= reg_SP + 16'h1;
+						d_addr 	= reg_SP + 16'h2;
 					end
 					4'h1: begin
 						stall 	= 1'b1;
 						pc_select = 3'b101;
 						next_holdstate = 4'h2;
-						d_addr 	= reg_SP + 16'h2;
+//						d_addr 	= reg_SP + 16'h2;
 					end
 					4'h2: begin
 						stall = 1'b1;
@@ -422,12 +422,13 @@ module avr_cpu (
 						// set up data memory things
 						d_addr = reg_SP;
 						data_out = Rd_do;
-						data_write = 1'b1;
+						data_write = 1'b0;
 					end
 					4'h1: begin
 						// done, clean up
 						stall = 1'b0;
-						data_write = 1'b0;
+						data_out = Rd_do;
+						data_write = 1'b1;
 						pc_select = 3'b010;
 						next_holdstate = 4'h0;
 					end
