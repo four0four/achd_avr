@@ -144,10 +144,10 @@ ld
 		1001 000d dddd 1010 load and pre-decrement
 		10q0 qq0d dddd 1qqq load from [Y+q]
 	LDZ
-		1000 000d dddd 1000 just load from [Y]
-		1001 000d dddd 1001 load and post-increment
-		1001 000d dddd 1010 load and pre-decrement
-		10q0 qq0d dddd 1qqq load from [Y+q]
+		1000 000d dddd 0000 just load from [Z]
+		1001 000d dddd 0001 load and post-increment
+		1001 000d dddd 0010 load and pre-decrement
+		10q0 qq0d dddd 0qqq load from [Z+q]
 
 st
 mov

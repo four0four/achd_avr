@@ -36,8 +36,11 @@ module avr_cpu (
 	reg [5:0] 	io_mem_addr; //= {instr[10:9], instr[3:0]};
 
 	// immediates
-	wire [7:0] 	K_8bit  = {instr[11:8], instr[3:0]};
-	wire [11:0] K_12bit = instr[11:0];
+	wire [7:0] 	K_8bit  		= {instr[11:8], instr[3:0]};
+	wire [11:0]	K_12bit 		= instr[11:0];
+
+	// indirect store/load offset field
+	wire [5:0]	load_offset	= {instr[13], instr[11:10], instr[2:0]};
 
 	// branch conditions and offsets
 	wire [6:0] 	K_branch = instr[9:3];
@@ -138,6 +141,34 @@ module avr_cpu (
 	// multi-cycle sequential & write-back
 	always @ (posedge CLK) begin
 		casex(instr)
+			16'b1001000xxxxx1100,
+			16'b1001000xxxxx1101,
+			16'b1001000xxxxx1110,
+			16'b1001000xxxxx1001,
+			16'b1001000xxxxx1010,
+			16'b1001000xxxxx0001,
+			16'b1001000xxxxx0010,
+			16'b1000000xxxxxxx: begin // LDX, LDY, LDZ
+				if(holdstate == 3'h1) begin
+					casex(instr)
+						// LDX
+						16'b1001000xxxxx1101: // LDX+
+							reg_X = reg_X + 16'h1;
+						16'b1001000xxxxx1110: // LDX-
+							reg_X = reg_X - 16'h1;
+						// LDY
+						16'b1001000xxxxx1001: // LDY+
+							reg_Y = reg_Y + 16'h1;
+						16'b1001000xxxxx1010: // LDY-
+							reg_Y = reg_Y - 16'h1;
+						// LDZ
+						16'b1001000xxxxx0001: // LDZ+
+							reg_Y = reg_Z + 16'h1;
+						16'b1001000xxxxx0010: // LDZ-
+							reg_Y = reg_Z - 16'h1;
+					endcase
+				end
+			end
 			16'b1001010100001000: begin	// RET
 				if(holdstate == 3'h1) pc_restore[7:0] <= data_in;
 				if(holdstate == 3'h2) pc_restore[15:8] <= data_in;
@@ -222,6 +253,50 @@ module avr_cpu (
 
 		casex(instr) 
 			default: stall = 1'b0;				// just chug through illegal things
+
+			16'b1001000xxxxx1100,  // LDX, LDY, LDZ
+			16'b1001000xxxxx1101,
+			16'b1001000xxxxx1110,
+			16'b1001000xxxxx1001,
+			16'b1001000xxxxx1010,
+			16'b1001000xxxxx0001,
+			16'b1001000xxxxx0010,
+			16'b1000000xxxxxxx: begin
+				// this is ugly as sin
+				// LDX
+				casex(instr)
+					16'b1001000xxxxx110x: // LDX or LDX+
+						d_addr	= reg_X;
+					16'b1001000xxxxx1110: // LDX-
+						d_addr 	= reg_X - 16'h1;
+					// LDY
+					16'b1001000xxxxx1001: // LDY+
+						d_addr	= reg_Y;
+					16'b1001000xxxxx1010: // LDY-
+						d_addr	= reg_Y - 16'h1;
+					16'b10x0xx0xxxxx1xxx: // LDY or LDR+q
+						d_addr	= reg_Y + load_offset;
+					// LDZ
+					16'b1001000xxxxx0001: // LDZ+
+						d_addr	= reg_Z;
+					16'b1001000xxxxx0010: // LDZ-
+						d_addr	= reg_Z - 16'h1;
+					16'b10x0xx0xxxxx0xxx: // LDZ or LDZ+q
+						d_addr	= reg_Z + load_offset;
+				endcase
+				case(holdstate)
+					4'h0: begin
+						stall = 1'b1;
+						pc_select = 3'b001;	// generic 2 cycle stall for memory
+						next_holdstate = 4'h1;
+					end
+					4'h1: begin
+						stall	= 1'b0;
+						next_holdstate = 4'h0;
+					end
+					default: next_holdstate = 4'h0;
+				endcase
+			end
 			16'b1111xxxxxxxxxxxx: begin		// BR*
 				case(holdstate)
 					4'h0: begin
@@ -229,11 +304,11 @@ module avr_cpu (
 							pc_select = 3'b100;
 							pc_jmp 		= {{9{K_branch[6]}}, K_branch};
 							stall 		= 1'b1;
-							next_holdstate = 1'h1;
+							next_holdstate = 4'h1;
 						end
 						else begin
 							stall = 1'b0;
-							next_holdstate = 1'h0;
+							next_holdstate = 4'h0;
 						end
 					end
 					4'h1: begin
@@ -523,6 +598,16 @@ module avr_cpu (
 					3'b111: branch_result = (I == 1'b1);
 				endcase
 				reg_write = 1'b0;
+			end
+			16'b1001000xxxxx1100,
+			16'b1001000xxxxx1101,
+			16'b1001000xxxxx1110,
+			16'b1001000xxxxx1001,
+			16'b1001000xxxxx1010,
+			16'b1001000xxxxx0001,
+			16'b1001000xxxxx0010,
+			16'b1000000xxxxxxx: begin // LDX, LDY, LDZ
+				Rd_di = data_in;
 			end
 		endcase // casex(instr)
 	end // always
