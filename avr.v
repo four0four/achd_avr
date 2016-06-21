@@ -141,31 +141,31 @@ module avr_cpu (
 	// multi-cycle sequential & write-back
 	always @ (posedge CLK) begin
 		casex(instr)
-			16'b1001000xxxxx1100,
-			16'b1001000xxxxx1101,
-			16'b1001000xxxxx1110,
-			16'b1001000xxxxx1001,
-			16'b1001000xxxxx1010,
-			16'b1001000xxxxx0001,
-			16'b1001000xxxxx0010,
-			16'b1000000xxxxxxx: begin // LDX, LDY, LDZ
+			16'b100100xxxxxx1100,
+			16'b100100xxxxxx1101,
+			16'b100100xxxxxx1110,
+			16'b100100xxxxxx1001,
+			16'b100100xxxxxx1010,
+			16'b100100xxxxxx0001,
+			16'b100100xxxxxx0010,
+			16'b10x0xxxxxxxxxxxx: begin  // LDX, LDY, LDZ or ST*
 				if(holdstate == 3'h1) begin
 					casex(instr)
 						// LDX
-						16'b1001000xxxxx1101: // LDX+
-							reg_X = reg_X + 16'h1;
-						16'b1001000xxxxx1110: // LDX-
-							reg_X = reg_X - 16'h1;
+						16'b100100xxxxxx1101: // LDX+
+							reg_X <= reg_X + 16'h1;
+						16'b100100xxxxxx1110: // LDX-
+							reg_X <= reg_X - 16'h1;
 						// LDY
-						16'b1001000xxxxx1001: // LDY+
-							reg_Y = reg_Y + 16'h1;
-						16'b1001000xxxxx1010: // LDY-
-							reg_Y = reg_Y - 16'h1;
+						16'b100100xxxxxx1001: // LDY+
+							reg_Y <= reg_Y + 16'h1;
+						16'b100100xxxxxx1010: // LDY-
+							reg_Y <= reg_Y - 16'h1;
 						// LDZ
-						16'b1001000xxxxx0001: // LDZ+
-							reg_Y = reg_Z + 16'h1;
-						16'b1001000xxxxx0010: // LDZ-
-							reg_Y = reg_Z - 16'h1;
+						16'b100100xxxxxx0001: // LDZ+
+							reg_Z <= reg_Z + 16'h1;
+						16'b100100xxxxxx0010: // LDZ-
+							reg_Z <= reg_Z - 16'h1;
 					endcase
 				end
 			end
@@ -254,34 +254,34 @@ module avr_cpu (
 		casex(instr) 
 			default: stall = 1'b0;				// just chug through illegal things
 
-			16'b1001000xxxxx1100,  // LDX, LDY, LDZ
-			16'b1001000xxxxx1101,
-			16'b1001000xxxxx1110,
-			16'b1001000xxxxx1001,
-			16'b1001000xxxxx1010,
-			16'b1001000xxxxx0001,
-			16'b1001000xxxxx0010,
-			16'b1000000xxxxxxx: begin
+			16'b100100xxxxxx1100,  // all LD{X,Y,Z} and ST{X,Y,Z} with inc/dec
+			16'b100100xxxxxx1101,
+			16'b100100xxxxxx1110,
+			16'b100100xxxxxx1001,
+			16'b100100xxxxxx1010,
+			16'b100100xxxxxx0001,
+			16'b100100xxxxxx0010,
+			16'b10x0xxxxxxxxxxxx: begin
 				// this is ugly as sin
-				// LDX
+				if(instr[0] == 1'b1) data_out = Rd_do; // if we're doing a store
 				casex(instr)
-					16'b1001000xxxxx110x: // LDX or LDX+
+					16'b100100xxxxxx110x: // LDX or LDX+
 						d_addr	= reg_X;
-					16'b1001000xxxxx1110: // LDX-
+					16'b100100xxxxxx1110: // LDX-
 						d_addr 	= reg_X - 16'h1;
 					// LDY
-					16'b1001000xxxxx1001: // LDY+
+					16'b100100xxxxxx1001: // LDY+
 						d_addr	= reg_Y;
-					16'b1001000xxxxx1010: // LDY-
+					16'b100100xxxxxx1010: // LDY-
 						d_addr	= reg_Y - 16'h1;
-					16'b10x0xx0xxxxx1xxx: // LDY or LDR+q
+					16'b10x0xxxxxxxx1xxx: // LDY or LDR+q
 						d_addr	= reg_Y + load_offset;
 					// LDZ
-					16'b1001000xxxxx0001: // LDZ+
+					16'b100100xxxxxx0001: // LDZ+
 						d_addr	= reg_Z;
-					16'b1001000xxxxx0010: // LDZ-
+					16'b100100xxxxxx0010: // LDZ-
 						d_addr	= reg_Z - 16'h1;
-					16'b10x0xx0xxxxx0xxx: // LDZ or LDZ+q
+					16'b10x0xxxxxxxx0xxx: // LDZ or LDZ+q
 						d_addr	= reg_Z + load_offset;
 				endcase
 				case(holdstate)
@@ -292,6 +292,7 @@ module avr_cpu (
 					end
 					4'h1: begin
 						stall	= 1'b0;
+						if(instr[0] == 1'b1) data_write = 1'b1; // write out if storing
 						next_holdstate = 4'h0;
 					end
 					default: next_holdstate = 4'h0;
@@ -513,6 +514,9 @@ module avr_cpu (
 			16'b1001010xxxxx0010: begin // SWAP
 				Rd_di = {Rd_do[3:0], Rd_do[7:4]};
 			end
+			16'b001011xxxxxxxxxx: begin	// MOV
+				Rd_di = Rr_do;
+			end
 			16'b1110xxxxxxxxxxxx: begin // LDI
 				Rd_di = K_8bit;
 			end
@@ -587,6 +591,21 @@ module avr_cpu (
 				N = Rd_di[7];
 				S = V ^ N;
 			end
+			16'b001001xxxxxxxxxx: begin	// EOR
+				Rd_di = Rd_do ^ Rr_do;
+				V = 0;
+				Z = (Rd_di == 8'b0);
+				N = Rd_di[7];
+				S = V ^ N;
+			end
+			16'b1001010xxxxx0110: begin // LSR
+				Rd_di = Rd_do >> 1;
+				C = Rd_do[0];
+				N = 0;
+				Z = (Rd_di == 8'b0);
+				V = N ^ C;
+				S = N ^ V;
+			end
 			16'b11110xxxxxxxxxxx: begin	// BR*
 				case(branch_cond)
 					3'b000: branch_result = (C == 1'b1);
@@ -600,15 +619,16 @@ module avr_cpu (
 				endcase
 				reg_write = 1'b0;
 			end
-			16'b1001000xxxxx1100,
-			16'b1001000xxxxx1101,
-			16'b1001000xxxxx1110,
-			16'b1001000xxxxx1001,
-			16'b1001000xxxxx1010,
-			16'b1001000xxxxx0001,
-			16'b1001000xxxxx0010,
-			16'b1000000xxxxxxx: begin // LDX, LDY, LDZ
-				Rd_di = data_in;
+			16'b100100xxxxxx1100,
+			16'b100100xxxxxx1101,
+			16'b100100xxxxxx1110,
+			16'b100100xxxxxx1001,
+			16'b100100xxxxxx1010,
+			16'b100100xxxxxx0001,
+			16'b100100xxxxxx0010,
+			16'b10x0xxxxxxxxxxxx: begin // LDX, LDY, LDZ, STX, STY, STZ
+				if(instr[0] == 1'b0) Rd_di = data_in; // if we're doing a load
+				else reg_write = 1'b0;
 			end
 		endcase // casex(instr)
 	end // always
