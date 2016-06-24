@@ -89,7 +89,7 @@ module avr_cpu (
 			for(i=0; i<26; i = i + 1) begin : make_quartus_happy
 			initial begin
 				if(RST) begin
-					reg_file[i] = 8'b0;
+					reg_file[i] = 8'h0;
 				end
 			end
 		end
@@ -263,7 +263,7 @@ module avr_cpu (
 			16'b100100xxxxxx0010,
 			16'b10x0xxxxxxxxxxxx: begin
 				// this is ugly as sin
-				if(instr[0] == 1'b1) data_out = Rd_do; // if we're doing a store
+				if(instr[9] == 1'b1) data_out = Rd_do; // if we're doing a store
 				casex(instr)
 					16'b100100xxxxxx110x: // LDX or LDX+
 						d_addr	= reg_X;
@@ -292,7 +292,7 @@ module avr_cpu (
 					end
 					4'h1: begin
 						stall	= 1'b0;
-						if(instr[0] == 1'b1) data_write = 1'b1; // write out if storing
+						if(instr[9] == 1'b1) data_write = 1'b1; // write out if storing
 						next_holdstate = 4'h0;
 					end
 					default: next_holdstate = 4'h0;
@@ -627,7 +627,7 @@ module avr_cpu (
 			16'b100100xxxxxx0001,
 			16'b100100xxxxxx0010,
 			16'b10x0xxxxxxxxxxxx: begin // LDX, LDY, LDZ, STX, STY, STZ
-				if(instr[0] == 1'b0) Rd_di = data_in; // if we're doing a load
+				if(instr[9] == 1'b0) Rd_di = data_in; // if we're doing a load
 				else reg_write = 1'b0;
 			end
 		endcase // casex(instr)

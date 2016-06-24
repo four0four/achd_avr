@@ -13,8 +13,8 @@ module cpu_tb;
 	wire [15:0] progdata;
 	wire [15:0] pc;
 
-	wire [7:0] data_out;
-	wire [7:0] data_in;
+	wire [7:0] dmem_out;
+	wire [7:0] dmem_in;
 	wire [15:0] dataaddr;
 	wire dwrite;
 
@@ -30,7 +30,7 @@ module cpu_tb;
 		$dumpvars(0, f);
 		#0 rst = 1;
 		#10 rst = 0;
-		#800 $finish;
+		#90000 $finish;
 	end
 
 	always #5 clk = !clk;
@@ -42,8 +42,8 @@ module cpu_tb;
 		.instr(inst),
 		.d_addr(dataaddr),
 		.data_write(dwrite),
-		.data_in(data_out),
-		.data_out(data_in),
+		.data_in(dmem_out),
+		.data_out(dmem_in),
 		.S_reg(S),
 		.pc_select(pcsrc),
 		.pc_jmp(jmp_k),
@@ -78,8 +78,8 @@ module cpu_tb;
 		.RST(rst),
 		.addr(dataaddr[10:0]),
 		.write_en(dwrite),
-		.do(data_out),
-		.di(data_in)
+		.do(dmem_out),
+		.di(dmem_in)
 	);
 
 endmodule
@@ -96,7 +96,8 @@ module program_memory(
 
 	initial begin
 
-		$readmemh("testcases/branchtest.hex", rom, 0, 511);
+		$readmemh("testcases/crc8_test.hex", rom, 0, 511);
+		//$readmemh("/tmp/new.hex", rom, 0, 511);
 
 		data = 16'd0;
 	end
